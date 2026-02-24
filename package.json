@@ -1,10 +1,9 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
-    "type": "module","scripts": {
+  "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "install": "npm install"
+    "build": "vite build"
 },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
