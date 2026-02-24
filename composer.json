@@ -5,12 +5,13 @@
     "description": "The skeleton application for the Laravel framework.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
-    "require": {
-        "php": "^8.2",
-        "laravel/framework": "^12.0",
-        "laravel/tinker": "^2.10.1",
-        "ext-pdo_pgsql": "*"
-    },
+  "require": {
+    "php": "^8.2",
+    "laravel/framework": "^12.0",
+    "laravel/tinker": "^2.10.1",
+    "ext-pdo_pgsql": "*",
+    "ext-bcmath": "*"
+},
     "require-dev": {
         "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.2",
