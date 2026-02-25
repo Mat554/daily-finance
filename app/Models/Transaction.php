@@ -9,10 +9,11 @@ class Transaction extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
+protected $fillable = [
         'description',
         'amount',
         'type',
-        'transaction_date', // <-- Make sure this is here!
+        'transaction_date',
+        'username', // <-- Add this line right here!
     ];
 }
