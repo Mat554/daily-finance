@@ -80,4 +80,16 @@ class FinanceController extends Controller
 
         return view('history', compact('groupedTransactions'));
     }
+
+    public function destroy(Transaction $transaction)
+    {
+        // Remember the date before we delete it, so we can redirect back to the right day
+        $date = $transaction->transaction_date;
+        
+        // Wipe it from the database
+        $transaction->delete();
+
+        // Send the user back to the tracker for that specific date
+        return redirect('/?date=' . $date);
+    }
 }

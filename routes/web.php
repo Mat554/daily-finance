@@ -24,7 +24,7 @@ Route::get('/logout', function () {
 
 // 4. Protect your main routes using ONLY the Class!
 Route::middleware([CheckUsername::class])->group(function () {
-    
+    Route::delete('/transaction/{transaction}', [FinanceController::class, 'destroy'])->name('destroy');
     // All your normal routes go inside here!
     Route::get('/', [FinanceController::class, 'index']);
     Route::get('/history', [FinanceController::class, 'history'])->name('history');

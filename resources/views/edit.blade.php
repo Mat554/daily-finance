@@ -49,6 +49,17 @@
             </div>
         </form>
 
+<form action="/transaction/{{ $transaction->id }}" method="POST" class="mt-6">
+            @csrf
+            @method('DELETE')
+            <button type="submit" 
+                    class="w-full p-2 font-bold text-white bg-red-600 rounded hover:bg-red-700"
+                    onclick="return confirm('Are you sure you want to delete this transaction? This cannot be undone.')">
+                Delete Transaction
+            </button>
+        </form>
+
+
         <div class="mt-4 text-center">
             <a href="/" class="text-gray-500 hover:underline">Cancel and go back</a>
         </div>
