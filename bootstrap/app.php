@@ -17,9 +17,18 @@ $app = Application::configure(basePath: dirname(__DIR__))
         //
     })->create();
 
-// Force the storage path to /tmp for Vercel's read-only filesystem
+// Vercel Serverless Fix: Force storage to /tmp AND create the folders
 if (isset($_SERVER['VERCEL_URL'])) {
-    $app->useStoragePath('/tmp/storage');
+    $storagePath = '/tmp/storage';
+    $app->useStoragePath($storagePath);
+
+    // Vercel gives us a blank /tmp folder. We must build the sub-folders 
+    // so Laravel doesn't crash when trying to write sessions or views.
+    foreach (['/logs', '/framework/views', '/framework/cache', '/framework/sessions'] as $dir) {
+        if (!is_dir($storagePath . $dir)) {
+            mkdir($storagePath . $dir, 0777, true);
+        }
+    }
 }
 
 return $app;
