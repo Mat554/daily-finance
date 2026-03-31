@@ -4,15 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finance History</title>
+    
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="bg-gray-100 min-h-screen p-6">
 
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 mb-10">
+    <style>
+        @media print {
+            /* This shrinks the physical paper margins so your content fills the page */
+            @page {
+                size: auto;
+                margin: 10mm; 
+            }
+            /* Forces the browser to print your beautiful background colors */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-6 print:p-0 print:bg-gray-100">
+
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 mb-10 print:mb-0">
         
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold">History</h1>
-            <a href="/" class="text-blue-500 hover:underline">&larr; Back to Today</a>
+            
+            <div class="flex items-center space-x-4 print:hidden">
+                <button onclick="window.print()" class="flex items-center space-x-1 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition">
+                    <i class="ph ph-printer text-lg"></i>
+                    <span class="text-sm font-medium">Export</span>
+                </button>
+                <a href="/" class="text-blue-500 hover:underline text-sm">&larr; Back to Today</a>
+            </div>
         </div>
 
         <div class="space-y-6">
@@ -23,7 +48,7 @@
                     $dayBalance = $dayIn - $dayOut;
                 @endphp
                 
-                <div class="border rounded-lg p-4 bg-gray-50 shadow-sm">
+                <div class="border rounded-lg p-4 bg-gray-50 shadow-sm print:break-inside-avoid">
                     <h2 class="font-bold text-lg mb-3 border-b pb-2 text-gray-800">
                         {{ \Carbon\Carbon::parse($date)->format('F j, Y') }}
                     </h2>
@@ -60,7 +85,7 @@
             @endforeach
         </div>
 
-        <div class="mt-8 border-t-2 border-gray-200 pt-6">
+        <div class="mt-8 border-t-2 border-gray-200 pt-6 print:break-inside-avoid">
             <h2 class="text-xl font-bold mb-4 text-center text-gray-800">All-Time Summary</h2>
             
             @php
