@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Daily Finance is a **Laravel 12** personal finance tracker with a two-tier UX:
-- **Matius** (case-insensitive) gets the full analytics dashboard at `/dashboard`
-- **All other users** get a simple daily tracker at `/`
+Daily Finance is a **Laravel 12** personal finance tracker with two views:
+- **`/`** — Simple daily tracker
+- **`/dashboard`** — Full analytics dashboard
+
+Every logged-in user can access both. Users choose their default landing (tracker or dashboard) via the in-app toggle, stored in `session('landing')`.
 
 ## Tech Stack
 
@@ -47,17 +49,20 @@ php artisan config:clear
 
 ### Routes (`routes/web.php`)
 - `GET /login` — Login form
-- `POST /login` — Set username in session, redirect to dashboard (Matius) or tracker
-- `GET /logout` — Clear session
+- `POST /login` — Set username + default landing preference in session, redirect per preference
+- `POST /preference` — Toggle default landing between `tracker` and `dashboard` (session-only)
+- `GET /logout` — Clear username from session (keeps landing preference)
 - All other routes protected by `CheckUsername` middleware
 
 ### Controller (`app/Http/Controllers/FinanceController.php`)
 Single controller handling all business logic:
-- `dashboard()` — Analytics for Matius: filters, monthly trend, savings/income splits, need-vs-want categorization, badges, streak tracking
-- `index()` — Daily tracker view (non-Matius users)
-- `store()` / `update()` / `destroy()` — CRUD on transactions
+- `dashboard()` — Analytics: filters, monthly trend, savings/income splits, need-vs-want categorization, badges, streak tracking
+- `index()` — Daily tracker view
+- `store()` / `update()` / `destroy()` — CRUD on transactions (redirects via `redirectAfterAction()`)
 - `history()` — Grouped transaction history
 - `edit()` — Edit form
+- `setPreference()` — Toggle `session('landing')` between `tracker` and `dashboard`
+- `redirectAfterAction()` — Private helper; redirects to dashboard or `/?date=...` based on `session('landing')`
 
 ### Models
 - **Transaction** — Core model. Fields: `description`, `amount`, `type` (`in`/`out`), `transaction_date`, `username`. Optional fields: `is_split`, `save_pct`, `spend_pct`, `saved_amount`, `spent_amount`, `split_preset`, `savings_distribution` (JSON), `savings_allocated`, `need_or_want`, `expense_category`
@@ -70,8 +75,8 @@ Single controller handling all business logic:
 
 ## Key Conventions
 
-- **User routing**: Hardcoded check `strtolower(session('username')) === 'matius'` gates the dashboard. This check appears in multiple places (routes, controller, views) — be consistent when modifying.
-- **Redirect logic after mutations**: Controller actions redirect to `/dashboard` for Matius, back to the date's tracker for others.
+- **Landing preference**: `session('landing')` defaults to `'tracker'` on every login. Users can switch via `POST /preference`. Mutations (store/update/destroy) redirect based on this preference via `FinanceController::redirectAfterAction()`.
+- **No special usernames**: Every logged-in user can reach `/dashboard`. The `matius` gate is removed — no hardcoded username checks anywhere.
 - **Asset pipeline**: `vite.config.js` bundles `resources/css/app.css` and `resources/js/app.js`. Build output goes to `public/build/`.
 - **CSS**: Tailwind v4 with `@import 'tailwindcss'` (no config file — uses `@theme` block in `app.css`).
 - **Fonts**: Instrument Sans (configured in `@theme`).

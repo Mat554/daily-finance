@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matius Finance Dashboard</title>
+    <title>Finance Dashboard</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
@@ -380,7 +380,7 @@
                         <i class="ph ph-chart-line-up text-white text-lg"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold leading-none">Matius Finance</h1>
+                        <h1 class="text-lg font-bold leading-none">{{ session('username') }}'s Finance</h1>
                         <p class="text-xs text-blue-100 leading-none flex items-center gap-1">
                             <i class="ph ph-sparkle text-xs sparkle"></i>
                             Your personal finance hub
@@ -388,10 +388,16 @@
                     </div>
                 </div>
                 <nav class="flex items-center gap-1">
-                    <a href="/" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-blue-100 hover:text-white hover:bg-white/10 transition font-medium">
-                        <i class="ph ph-calendar text-base"></i>
-                        Tracker
-                    </a>
+                    <form action="/preference" method="POST" class="flex items-center">
+                        @csrf
+                        <input type="hidden" name="landing" value="{{ session('landing') === 'dashboard' ? 'tracker' : 'dashboard' }}">
+                        <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition
+                            {{ session('landing') === 'dashboard' ? 'bg-white/20 text-white' : 'text-blue-100 hover:text-white hover:bg-white/10' }}
+                            border border-white/30 hover:bg-white/10" title="Set as default landing: {{ session('landing') === 'dashboard' ? 'Tracker' : 'Dashboard' }}">
+                            <i class="ph {{ session('landing') === 'dashboard' ? 'ph-house' : 'ph-chart-line-up' }} text-base"></i>
+                            {{ session('landing') === 'dashboard' ? 'Default: Dashboard' : 'Default: Tracker' }}
+                        </button>
+                    </form>
                     <a href="/history" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-blue-100 hover:text-white hover:bg-white/10 transition font-medium">
                         <i class="ph ph-clock-counter-clockwise text-base"></i>
                         History
@@ -409,7 +415,7 @@
         <!-- Greeting -->
         <div>
             <h2 class="text-2xl font-bold text-gray-900">
-                Hey, Matius
+                Hey, {{ session('username') }}
                 <span class="inline-block ml-1">
                     @if(now()->hour < 12) 🌅
                     @elseif(now()->hour < 18) ☀️
@@ -1669,7 +1675,7 @@
             // Motivational message
             const msgs = {
                 80: "Maximum saver mode! You're a legend! 🚀",
-                70: "Whoa, Matius is on fire! 🔥",
+                70: "Whoa, {{ session('username') }} is on fire! 🔥",
                 60: 'Solid saving discipline! Keep it up! 💪',
                 50: 'A great split starts your month right! 🎯',
                 30: 'Treat yourself, but wisely! ✨',
@@ -1801,7 +1807,7 @@
             closeSplitModal();
             triggerConfetti();
             showToast(
-                `Rp ${Math.round(saveAmt).toLocaleString('id-ID')} saved! Great job, Matius! 🎉`
+                `Rp ${Math.round(saveAmt).toLocaleString('id-ID')} saved! Great job, {{ session('username') }}! 🎉`
             );
             document.getElementById('splitForm').submit();
         }

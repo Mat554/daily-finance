@@ -261,13 +261,13 @@
             </button>
         </form>
 
-        <!-- Back link -->
+        <!-- Back link — referer-based so it returns you to wherever you came from -->
         <div class="px-5 pb-5 text-center">
-            @if(strtolower(session('username', '')) === 'matius')
-                <a href="/dashboard" class="text-xs text-gray-400 hover:text-gray-600 transition">← Back to Dashboard</a>
-            @else
-                <a href="/" class="text-xs text-gray-400 hover:text-gray-600 transition">← Back to Tracker</a>
-            @endif
+            @php
+                $ref = request()->headers->get('referer', '');
+                $backUrl = str_contains($ref, '/dashboard') ? '/dashboard' : '/';
+            @endphp
+            <a href="{{ $backUrl }}" class="text-xs text-gray-400 hover:text-gray-600 transition">← Back</a>
         </div>
     </div>
 

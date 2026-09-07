@@ -19,10 +19,16 @@
                     </div>
                     <span class="text-sm font-bold text-gray-800">{{ session('username') }}</span>
                 </div>
-                <a href="/logout" class="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition">
-                    <i class="ph ph-sign-out"></i>
-                    Logout
-                </a>
+                <div class="flex items-center gap-3">
+                    <a href="/dashboard" class="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 transition font-medium">
+                        <i class="ph ph-chart-line-up"></i>
+                        Dashboard
+                    </a>
+                    <a href="/logout" class="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition">
+                        <i class="ph ph-sign-out"></i>
+                        Logout
+                    </a>
+                </div>
             </div>
         </div>
     </header>

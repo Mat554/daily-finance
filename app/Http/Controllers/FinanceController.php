@@ -10,12 +10,8 @@ class FinanceController extends Controller
 {
     public function dashboard(Request $request)
     {
-        $username = strtolower(session('username'));
-        $isMatius = $username === 'matius';
-
-        if (!$isMatius) {
-            return redirect('/');
-        }
+        // Dashboard is open to every logged-in account.
+        // Per-user landing preference lives in session('landing').
 
         // --- Filter params ---
         $filter = $request->get('filter', 'month');
@@ -324,7 +320,7 @@ class FinanceController extends Controller
     {
         if ($count === 0) return 'Ready to take control? Split your next income! 💡';
         if ($rate >= 80) return "Maximum saver mode! You're a legend! 🚀";
-        if ($rate >= 70) return "Whoa, Matius is on fire! 🔥";
+        if ($rate >= 70) return "Whoa, " . session('username', 'friend') . " is on fire! 🔥";
         if ($rate >= 60) return 'Solid saving discipline! Keep it up! 💪';
         if ($rate >= 50) return 'A great split starts your month right! 🎯';
         if ($rate >= 30) return 'Every split counts — great job! 🎯';
@@ -407,10 +403,7 @@ class FinanceController extends Controller
 
         Transaction::create($data);
 
-        if (strtolower(session('username', '')) === 'matius') {
-            return redirect('/dashboard');
-        }
-        return redirect('/?date=' . $request->transaction_date);
+        return $this->redirectAfterAction($request);
     }
 
     public function edit(Transaction $transaction)
@@ -462,10 +455,7 @@ class FinanceController extends Controller
 
         $transaction->update($data);
 
-        if (strtolower(session('username', '')) === 'matius') {
-            return redirect('/dashboard');
-        }
-        return redirect('/?date=' . $request->transaction_date);
+        return $this->redirectAfterAction($request);
     }
 
     public function history()
@@ -483,9 +473,41 @@ class FinanceController extends Controller
         $date = $transaction->transaction_date;
         $transaction->delete();
 
-        if (strtolower(session('username', '')) === 'matius') {
+        return $this->redirectAfterAction(request()->merge(['transaction_date' => $date]));
+    }
+
+    public function setPreference(Request $request)
+    {
+        $request->validate([
+            'landing' => 'required|in:tracker,dashboard',
+        ]);
+
+        session(['landing' => $request->landing]);
+
+        return back();
+    }
+
+    /**
+     * Centralised post-action redirect.
+     *
+     * Honors the user's session('landing') preference:
+     *   - 'dashboard' → /dashboard
+     *   - 'tracker'   → /?date=<context date> (defaults to today)
+     *
+     * Used by store/update/destroy so the same rule applies to every mutation.
+     */
+    private function redirectAfterAction(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $landing = session('landing', 'tracker');
+
+        if ($landing === 'dashboard') {
             return redirect('/dashboard');
         }
+
+        $date = $request->input('transaction_date')
+            ?? $request->input('date')
+            ?? now()->toDateString();
+
         return redirect('/?date=' . $date);
     }
 }
