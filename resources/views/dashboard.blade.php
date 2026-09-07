@@ -782,9 +782,10 @@
                     </p>
 
                     @php
-                        // Score: 0-100 based on savings rate
-                        $savingsRate = ($totalIn > 0 && $total > 0) ? ($totalIn - $totalOut) / $totalIn : 0;
-                        $score = max(0, min(100, round(($savingsRate + 1) * 50)));
+                        // Score: 0-100 based on whole-portfolio savings rate.
+                        // Distinct from the Save vs Spend donut's $splitSavingsRate.
+                        $portfolioSavingsRate = ($totalIn > 0) ? ($totalIn - $totalOut) / $totalIn : 0;
+                        $score = max(0, min(100, round(($portfolioSavingsRate + 1) * 50)));
                         $scoreColor = $score >= 70 ? '#22c55e' : ($score >= 40 ? '#f59e0b' : '#ef4444');
                         $scoreLabel = $score >= 70 ? 'Healthy' : ($score >= 40 ? 'Okay' : 'Needs Work');
                         $scoreBg    = $score >= 70 ? 'bg-green-100 text-green-700' : ($score >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600');

@@ -113,6 +113,10 @@ class FinanceController extends Controller
         $totalSplitIncome = (float) $splitTx->sum('amount');
         $savingsRate = $totalSplitIncome > 0 ? ($totalSaved / $totalSplitIncome) * 100 : 0;
 
+        // Save vs Spend donut: rate among rows the user actually split.
+        // Clamp to [0, 100] so the donut math in the view never divides oddly.
+        $splitSavingsRate = max(0.0, min(100.0, (float) $savingsRate));
+
         // ── Need vs Want (expense categories) ────────────────────────
         $needTx = $transactions->where('type', 'out')->where('need_or_want', 'need');
         $wantTx = $transactions->where('type', 'out')->where('need_or_want', 'want');
