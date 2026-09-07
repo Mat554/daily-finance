@@ -7,8 +7,6 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        @import 'tailwindcss';
-
         .card {
             @apply bg-white rounded-3xl p-6 shadow-sm border border-gray-100;
         }
@@ -1375,67 +1373,68 @@
                 <div class="w-16 h-16 bg-emerald-100 border-4 border-emerald-400 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl">
                     🏦
                 </div>
-                <h2 class="text-xl font-black text-gray-900">Distribute Your Savings</h2>
-                <p class="text-sm text-gray-400 mt-1">Allocate saved amounts into categories</p>
+                <h2 class="text-xl font-black text-gray-900">Split & Distribute</h2>
+                <p class="text-sm text-gray-400 mt-1">Retroactively split Money In and allocate savings</p>
             </div>
 
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Choose categories</p>
+            @if($unsplitInTx->isEmpty())
+                <p class="text-sm text-gray-400 text-center py-4">No unsplit Money In transactions to distribute.</p>
+            @else
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Select Money In to split ({{ number_format($unsplitIn, 0) }} total)</p>
+                <div class="max-h-40 overflow-y-auto border border-gray-200 rounded-xl mb-4 divide-y divide-gray-100">
+                    @foreach($unsplitInTx as $tx)
+                        <label class="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" class="dist-tx-check" value="{{ $tx->id }}" data-amount="{{ $tx->amount }}" checked>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-800 truncate">{{ $tx->description }}</p>
+                                <p class="text-xs text-gray-400">{{ \Carbon\Carbon::parse($tx->transaction_date)->format('M d') }}</p>
+                            </div>
+                            <span class="text-sm font-bold text-green-600">Rp {{ number_format($tx->amount, 0) }}</span>
+                        </label>
+                    @endforeach
+                </div>
 
-            <!-- Category toggles -->
-            <div class="flex flex-wrap gap-2 mb-4">
-                @foreach(['Emergency Fund', 'Investment', 'Goals', 'Buffer'] as $cat)
-                    @php $catColors = ['Emergency Fund' => 'emerald', 'Investment' => 'blue', 'Goals' => 'amber', 'Buffer' => 'purple'];
-                          $catIcons = ['Emergency Fund' => '🛡️', 'Investment' => '📈', 'Goals' => '🎯', 'Buffer' => '💼'];
-                    @endphp
-                    <button type="button"
-                        class="dist-cat-btn px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition"
-                        data-cat="{{ $cat }}"
-                        data-icon="{{ $catIcons[$cat] }}"
-                        onclick="toggleDistCat(this, '{{ $cat }}')">
-                        {{ $catIcons[$cat] }} {{ $cat }}
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Save percentage</p>
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs text-gray-500">Save</span>
+                        <span class="text-xs font-bold text-emerald-600" id="distSavePct">50%</span>
+                        <span class="text-xs text-gray-500">Spend</span>
+                    </div>
+                    <input type="range" id="distSaveSlider" min="0" max="100" value="50"
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                        oninput="document.getElementById('distSavePct').textContent=this.value+'%'; document.getElementById('distSpendPct').textContent=(100-this.value)+'%'">
+                    <div class="flex justify-end mt-1">
+                        <span class="text-xs text-red-400 font-bold" id="distSpendPct">50%</span>
+                    </div>
+                </div>
+
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Category distribution (of saved amount)</p>
+                <div class="space-y-2 mb-4">
+                    @foreach(['Emergency Fund' => '#22c55e', 'Investment' => '#3b82f6', 'Goals' => '#f59e0b', 'Buffer' => '#a78bfa'] as $cat => $color)
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="distPct_{{$cat}}" value="25" min="0" max="100" class="w-14 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center" oninput="updateDistTotal()">
+                            <span class="text-xs font-semibold text-gray-600 w-28">{{ $cat }}</span>
+                            <div class="flex-1 bg-gray-100 rounded-full h-2">
+                                <div id="distBar_{{$cat}}" class="h-2 rounded-full transition-all" style="width:25%;background:{{ $color }}"></div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                <p id="distTotalError" class="text-xs text-red-500 mb-3 hidden text-center">Total must equal 100%</p>
+
+                <!-- Actions -->
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeDistributionModal()"
+                        class="flex-1 py-3 rounded-2xl border-2 border-gray-200 text-sm font-bold text-gray-400 hover:bg-gray-50 transition">
+                        Cancel
                     </button>
-                @endforeach
-            </div>
-
-            <!-- Amount input -->
-            <div class="mb-4">
-                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                    Total to Distribute (Rp)
-                </label>
-                <input type="number" id="distTotalAmount" placeholder="e.g. 500000" min="0"
-                    class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    oninput="updateDistAmounts()">
-                <p class="text-[10px] text-gray-400 mt-1">This will be split across selected categories by %</p>
-            </div>
-
-            <!-- Per-category sliders -->
-            <div id="distSliders" class="space-y-3 mb-4">
-                <!-- Filled by JS -->
-            </div>
-
-            <!-- Preview bar -->
-            <div class="mb-4">
-                <div class="flex gap-1 h-3 rounded-full overflow-hidden" id="distSetupBarPreview">
-                    <!-- Filled by JS -->
+                    <button type="button" onclick="submitRetroDistribution()"
+                        class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-200 hover:shadow-emerald-300 hover:from-emerald-600 hover:to-teal-600 active:scale-95 transition-all flex items-center justify-center gap-2">
+                        🏦 Apply Split & Distribute
+                    </button>
                 </div>
-                <div class="flex justify-between mt-1">
-                    <span class="text-[9px] text-gray-400" id="distSetupTotalPct">0%</span>
-                    <span class="text-[9px] text-gray-400">100%</span>
-                </div>
-                <p id="distSetupError" class="text-[10px] text-red-500 mt-1 hidden">Total must equal 100%</p>
-            </div>
-
-            <!-- Actions -->
-            <div class="flex gap-3">
-                <button type="button" onclick="closeDistributionModal()"
-                    class="flex-1 py-3 rounded-2xl border-2 border-gray-200 text-sm font-bold text-gray-400 hover:bg-gray-50 transition">
-                    Cancel
-                </button>
-                <button type="button" onclick="submitDistribution()"
-                    class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-200 hover:shadow-emerald-300 hover:from-emerald-600 hover:to-teal-600 active:scale-95 transition-all flex items-center justify-center gap-2">
-                    🏦 Apply Distribution
-                </button>
-            </div>
+            @endif
         </div>
     </div>
 
@@ -1455,6 +1454,14 @@
         <input type="hidden" name="savings_distribution" id="splitFormDist">
     </form>
 
+    <form id="distributionForm" action="{{ route('saveDistribution') }}" method="POST" class="hidden">
+        @csrf
+        <input type="hidden" name="transaction_ids" id="distFormIds">
+        <input type="hidden" name="save_pct" id="distFormSavePct">
+        <input type="hidden" name="spend_pct" id="distFormSpendPct">
+        <input type="hidden" name="distribution" id="distributionFormData">
+    </form>
+
     <form id="expenseForm" action="{{ route('store') }}" method="POST" class="hidden">
         @csrf
         <input type="hidden" name="description" id="expenseFormDesc">
@@ -1466,6 +1473,14 @@
     </form>
 
     <script>
+        // ── Constants ─────────────────────────────────────────────────
+        const CIRC = 2 * Math.PI * 30; // donut circumference (r=30)
+        const PRESETS = {
+            balanced: 50,
+            saver: 80,
+            spender: 20,
+        };
+
         // ── Bar chart tooltip ──────────────────────────────────────────
         document.querySelectorAll('.bar-segment').forEach(bar => {
             bar.addEventListener('mouseenter', () => {
@@ -1588,6 +1603,7 @@
         };
 
         function openSplitModal(form) {
+            console.log('openSplitModal called', form);
             if (!form.description.value.trim()) {
                 alert('Please enter a description first!');
                 form.description.focus();
@@ -1602,6 +1618,8 @@
             splitAmount = parseFloat(form.amount.value);
             splitDesc = form.description.value.trim();
             splitDate = form.transaction_date.value;
+
+            console.log('Opening split modal with:', { splitAmount, splitDesc, splitDate });
 
             document.getElementById('splitAmountDisplay').textContent =
                 'Rp ' + splitAmount.toLocaleString('id-ID');
@@ -1618,6 +1636,7 @@
             document.getElementById('splitSlider').value = 50;
             splitPreset = 'balanced';
             document.getElementById('splitModal').classList.add('active');
+            console.log('splitModal active class added');
         }
 
         function openSplitModalForAmount(amount, desc) {
@@ -1792,6 +1811,12 @@
             document.getElementById('splitFormSpentAmt').value = spendAmt;
             document.getElementById('splitFormPreset').value = splitPreset;
 
+            // DEBUG
+            console.log('submitWithSplit called', {
+                splitDesc, splitAmount, splitDate, savePct, spendPct,
+                distEnabled: distState.enabled, distTotalPct: distState.totalPct
+            });
+
             // Distribution data
             if (distState.enabled && distState.totalPct === 100) {
                 const dist = DIST_CATEGORIES.map(cat => ({
@@ -1809,42 +1834,25 @@
             showToast(
                 `Rp ${Math.round(saveAmt).toLocaleString('id-ID')} saved! Great job, {{ session('username') }}! 🎉`
             );
-            document.getElementById('splitForm').submit();
+
+            // DEBUG: Check form before submit
+            const f = document.getElementById('splitForm');
+            console.log('Form action:', f.action);
+            console.log('Form fields:', {
+                desc: document.getElementById('splitFormDesc').value,
+                amt: document.getElementById('splitFormAmt').value,
+                type: f.querySelector('[name=type]').value,
+                is_split: f.querySelector('[name=is_split]').value,
+                save_pct: document.getElementById('splitFormSavePct').value,
+            });
+            f.submit();
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // DISTRIBUTION SETUP MODAL (retroactive / standalone)
+        // DISTRIBUTION SETUP MODAL (retroactive split + distribute)
         // ═══════════════════════════════════════════════════════════════
-        let setupDistState = {
-            activeCats: ['Emergency Fund', 'Investment', 'Goals', 'Buffer'],
-            totalAmount: 0,
-            pct: { 'Emergency Fund': 25, 'Investment': 25, 'Goals': 25, 'Buffer': 25 },
-        };
-
-        const DIST_COLORS = {
-            'Emergency Fund': '#22c55e',
-            'Investment': '#3b82f6',
-            'Goals': '#f59e0b',
-            'Buffer': '#a78bfa',
-        };
 
         function openDistributionSetupModal() {
-            // Pre-fill with total saved - total allocated
-            const unallocated = {{ $totalSaved }} - {{ $totalAllocated }};
-            setupDistState.totalAmount = unallocated > 0 ? unallocated : 0;
-            document.getElementById('distTotalAmount').value = Math.round(setupDistState.totalAmount);
-            renderSetupSliders();
-            updateSetupBar();
-            updateCatButtonStyles();
-            document.getElementById('distributionModal').classList.add('active');
-        }
-
-        function openDistributionModal() {
-            setupDistState.totalAmount = 0;
-            document.getElementById('distTotalAmount').value = '';
-            renderSetupSliders();
-            updateSetupBar();
-            updateCatButtonStyles();
             document.getElementById('distributionModal').classList.add('active');
         }
 
@@ -1852,116 +1860,73 @@
             document.getElementById('distributionModal').classList.remove('active');
         }
 
-        function toggleDistCat(btn, catName) {
-            const idx = setupDistState.activeCats.indexOf(catName);
-            if (idx >= 0) {
-                setupDistState.activeCats.splice(idx, 1);
-            } else {
-                setupDistState.activeCats.push(catName);
+        // Update category bars on slider input
+        function updateDistTotal() {
+            const cats = ['Emergency Fund', 'Investment', 'Goals', 'Buffer'];
+            const colors = {
+                'Emergency Fund': '#22c55e',
+                'Investment': '#3b82f6',
+                'Goals': '#f59e0b',
+                'Buffer': '#a78bfa',
+            };
+            cats.forEach(cat => {
+                const val = parseInt(document.getElementById('distPct_' + cat).value) || 0;
+                document.getElementById('distBar_' + cat).style.width = val + '%';
+            });
+        }
+
+        // Called when a percentage input changes — update the corresponding bar
+        ['Emergency Fund', 'Investment', 'Goals', 'Buffer'].forEach(cat => {
+            const input = document.getElementById('distPct_' + cat);
+            if (input) {
+                input.addEventListener('input', updateDistTotal);
             }
-            // Redistribute percentages evenly
-            const count = setupDistState.activeCats.length || 1;
-            setupDistState.activeCats.forEach(c => { setupDistState.pct[c] = Math.round(100 / count); });
-            updateSetupBar();
-            renderSetupSliders();
-            updateCatButtonStyles();
-        }
+        });
 
-        function updateCatButtonStyles() {
-            document.querySelectorAll('.dist-cat-btn').forEach(btn => {
-                const cat = btn.dataset.cat;
-                const active = setupDistState.activeCats.includes(cat);
-                const color = DIST_COLORS[cat];
-                const borderColor = color;
-                btn.style.borderColor = active ? borderColor : '#e5e7eb';
-                btn.style.color = active ? borderColor : '#9ca3af';
-                btn.style.background = active ? color + '15' : 'white';
-            });
-        }
-
-        function updateDistAmounts() {
-            const raw = parseFloat(document.getElementById('distTotalAmount').value) || 0;
-            setupDistState.totalAmount = raw;
-            renderSetupSliders();
-            updateSetupBar();
-        }
-
-        function renderSetupSliders() {
-            const container = document.getElementById('distSliders');
-            container.innerHTML = '';
-            setupDistState.activeCats.forEach(catName => {
-                const pct = setupDistState.pct[catName] || 0;
-                const amt = setupDistState.totalAmount * pct / 100;
-                const color = DIST_COLORS[catName];
-                container.innerHTML += `
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold w-24 text-gray-600">${catName}</span>
-                        <input type="range" min="0" max="100" value="${pct}"
-                            class="flex-1 h-1.5 rounded-full cursor-pointer"
-                            style="accent-color:${color}"
-                            oninput="updateSetupPct('${catName}', this.value)">
-                        <span class="text-xs font-bold text-gray-500 w-8 text-right">${pct}%</span>
-                        <span class="text-xs font-bold w-24 text-right" style="color:${color}">Rp ${Math.round(amt).toLocaleString('id-ID')}</span>
-                    </div>`;
-            });
-        }
-
-        function updateSetupPct(catName, val) {
-            setupDistState.pct[catName] = parseInt(val);
-            renderSetupSliders();
-            updateSetupBar();
-        }
-
-        function updateSetupBar() {
-            const bar = document.getElementById('distSetupBarPreview');
-            const totalPct = document.getElementById('distSetupTotalPct');
-            const error = document.getElementById('distSetupError');
-            const total = Object.values(setupDistState.pct).reduce((a, b) => a + b, 0);
-            totalPct.textContent = total + '%';
-            error.classList.toggle('hidden', total === 100);
-            bar.innerHTML = '';
-            setupDistState.activeCats.forEach(catName => {
-                const pct = setupDistState.pct[catName] || 0;
-                if (pct > 0) {
-                    bar.innerHTML += `<div style="width:${pct}%;background:${DIST_COLORS[catName]}" class="h-full transition-all duration-200 rounded-full"></div>`;
-                }
-            });
-        }
-
-        function submitDistribution() {
-            const totalPct = Object.values(setupDistState.pct).reduce((a, b) => a + b, 0);
-            if (totalPct !== 100) {
-                document.getElementById('distSetupError').classList.remove('hidden');
+        function submitRetroDistribution() {
+            // Collect selected transaction IDs
+            const ids = Array.from(document.querySelectorAll('.dist-tx-check:checked'))
+                .map(cb => cb.value);
+            if (ids.length === 0) {
+                alert('Please select at least one Money In to split.');
                 return;
             }
-            const dist = setupDistState.activeCats.map(catName => ({
-                category: catName,
-                pct: setupDistState.pct[catName],
-                amount: Math.round(setupDistState.totalAmount * setupDistState.pct[catName] / 100),
-            })).filter(d => d.pct > 0);
 
-            // For standalone distribution, we just show the breakdown and redirect
-            // or we could create a "distribution log" transaction
+            const savePct = parseInt(document.getElementById('distSaveSlider').value);
+            const spendPct = 100 - savePct;
+
+            // Collect distribution percentages
+            const cats = ['Emergency Fund', 'Investment', 'Goals', 'Buffer'];
+            let totalPct = 0;
+            const dist = cats.map(cat => {
+                const pct = parseInt(document.getElementById('distPct_' + cat).value) || 0;
+                totalPct += pct;
+                return { category: cat, pct: pct, amount: 0 }; // amount computed server-side
+            });
+
+            if (totalPct !== 100) {
+                document.getElementById('distTotalError').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('distTotalError').classList.add('hidden');
+
+            // Fill hidden form
+            document.getElementById('distFormIds').value = JSON.stringify(ids);
+            document.getElementById('distFormSavePct').value = savePct;
+            document.getElementById('distFormSpendPct').value = spendPct;
+            document.getElementById('distributionFormData').value = JSON.stringify(dist);
+
             closeDistributionModal();
-            const totalDist = dist.reduce((a, d) => a + d.amount, 0);
-            showToast(`Rp ${totalDist.toLocaleString('id-ID')} distributed across ${dist.length} categories! 🏦`, 'info');
-            // For now, redirect with distribution data as query params
-            const distJson = encodeURIComponent(JSON.stringify(dist));
-            window.location.href = '/dashboard?filter={{ $filter }}&type={{ $type }}&dist=' + distJson;
+            document.getElementById('distributionForm').submit();
         }
 
-        // Intercept distribution param from URL to auto-populate
+        // Strip distribution URL param if present (from old links)
         (function() {
             const params = new URLSearchParams(window.location.search);
-            const distParam = params.get('dist');
-            if (distParam) {
-                try {
-                    const dist = JSON.parse(decodeURIComponent(distParam));
-                    // Just reload with distribution data applied — the controller will pick it up on next render
-                    // For now, we just clear the param
-                    const cleanUrl = window.location.pathname + '?filter={{ $filter }}&type={{ $type }}';
-                    window.history.replaceState({}, '', cleanUrl);
-                } catch(e) {}
+            if (params.has('dist')) {
+                params.delete('dist');
+                const cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                window.history.replaceState({}, '', cleanUrl);
             }
         })();
 
@@ -2076,6 +2041,12 @@
             document.getElementById('expenseFormNow').value = selectedNow || '';
             document.getElementById('expenseFormCat').value = selectedCat || '';
 
+            // DEBUG
+            console.log('submitWithCategory', {
+                expenseDesc, expenseAmount, expenseDate,
+                selectedNow, selectedCat
+            });
+
             closeExpenseModal();
             const msg = selectedNow === 'need'
                 ? '🏠 Tagged as Need! Smart move.'
@@ -2083,7 +2054,13 @@
                 ? '🎉 Tagged as Want! Enjoy wisely.'
                 : 'Expense logged!';
             showToast(msg, selectedNow === 'want' ? 'wan' : 'info');
-            document.getElementById('expenseForm').submit();
+            const f = document.getElementById('expenseForm');
+            console.log('Expense form action:', f.action, {
+                desc: document.getElementById('expenseFormDesc').value,
+                now: document.getElementById('expenseFormNow').value,
+                cat: document.getElementById('expenseFormCat').value,
+            });
+            f.submit();
         }
 
         // ═══════════════════════════════════════════════════════════════

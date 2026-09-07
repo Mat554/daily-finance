@@ -135,7 +135,7 @@ class FinanceController extends Controller
         }
 
         foreach ($distributions as $tx) {
-            $dist = is_string($tx->savings_distribution) ? json_decode($tx->savings_distribution, true) : ($tx->savings_distribution ?? []);
+            $dist = is_string($tx->savings_distribution) ? (json_decode($tx->savings_distribution, true) ?? []) : ($tx->savings_distribution ?? []);
             foreach ($dist as $item) {
                 $cat = $item['category'] ?? '';
                 $amt = (float) ($item['amount'] ?? 0);
@@ -157,6 +157,7 @@ class FinanceController extends Controller
 
         // ── CTA nudges ───────────────────────────────────────────────
         $unsplitIn = (float) $transactions->where('type', 'in')->where('is_split', false)->sum('amount');
+        $unsplitInTx = $transactions->where('type', 'in')->where('is_split', false)->sortByDesc('transaction_date')->take(20)->values();
         $uncategorizedOut = (float) $transactions->where('type', 'out')->whereNull('need_or_want')->sum('amount');
 
         // ── Savings streak ───────────────────────────────────────────
@@ -226,7 +227,7 @@ class FinanceController extends Controller
             // New split/category vars
             'totalSaved', 'totalSpent', 'splitCount', 'savingsRate',
             'needAmount', 'wantAmount', 'needCount', 'wantCount', 'needPct', 'wantPct',
-            'unsplitIn', 'uncategorizedOut',
+            'unsplitIn', 'unsplitInTx', 'uncategorizedOut',
             'streak', 'badges', 'splitSavingsRate', 'saveVsSpendMessage', 'needVsWantMessage',
             'categorizedSavings', 'distributionChart', 'totalAllocated', 'hasDistributions',
         ));
@@ -496,6 +497,68 @@ class FinanceController extends Controller
      *
      * Used by store/update/destroy so the same rule applies to every mutation.
      */
+    public function saveDistribution(Request $request)
+    {
+        $transactionIds = $request->input('transaction_ids', []);
+        $distribution = $request->input('distribution');
+        $savePct = (float) $request->input('save_pct', 0);
+        $spendPct = (float) $request->input('spend_pct', 100 - $savePct);
+
+        if (empty($transactionIds) && empty($distribution)) {
+            return redirect('/dashboard');
+        }
+
+        $dist = null;
+        if ($distribution) {
+            $dist = is_string($distribution) ? json_decode($distribution, true) : $distribution;
+        }
+
+        // Update selected transactions with split + distribution
+        if (!empty($transactionIds)) {
+            $txs = Transaction::where('username', session('username'))
+                ->whereIn('id', $transactionIds)
+                ->where('type', 'in')
+                ->where(function ($q) {
+                    $q->where('is_split', false)->orWhereNull('is_split');
+                })
+                ->get();
+
+            foreach ($txs as $tx) {
+                $savedAmount = $tx->amount * $savePct / 100;
+                $spentAmount = $tx->amount * $spendPct / 100;
+
+                $tx->update([
+                    'is_split' => true,
+                    'save_pct' => $savePct,
+                    'spend_pct' => $spendPct,
+                    'saved_amount' => $savedAmount,
+                    'spent_amount' => $spentAmount,
+                    'split_preset' => 'batch',
+                    'savings_distribution' => $dist ? json_encode($dist) : null,
+                    'savings_allocated' => !empty($dist),
+                ]);
+            }
+
+            // Recompute actual amounts for distribution from total saved
+            if ($dist && !$txs->isEmpty()) {
+                $totalSaved = $txs->sum(function ($tx) use ($savePct) {
+                    return $tx->amount * $savePct / 100;
+                });
+                foreach ($dist as &$item) {
+                    $item['amount'] = round($totalSaved * ($item['pct'] ?? 0) / 100);
+                }
+                unset($item);
+                // Save updated distribution with actual amounts to all transactions
+                $distJson = json_encode($dist);
+                foreach ($txs as $tx) {
+                    $tx->update(['savings_distribution' => $distJson]);
+                }
+            }
+        }
+
+        return redirect('/dashboard');
+    }
+
     private function redirectAfterAction(Request $request): \Illuminate\Http\RedirectResponse
     {
         $landing = session('landing', 'tracker');
