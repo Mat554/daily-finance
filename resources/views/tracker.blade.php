@@ -4,11 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Finance Tracker</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-gray-100 min-h-screen p-6">
+<body class="bg-gray-100 min-h-screen">
 
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-md mx-auto px-4">
+            <div class="flex items-center justify-between h-14">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="ph ph-wallet text-white text-sm"></i>
+                    </div>
+                    <span class="text-sm font-bold text-gray-800">{{ session('username') }}</span>
+                </div>
+                <a href="/logout" class="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition">
+                    <i class="ph ph-sign-out"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-md mx-auto px-4 py-6">
        <h1 class="text-2xl font-bold text-center mb-6">
     Tracker for {{ \Carbon\Carbon::parse($currentDate)->format('M d, Y') }}
 </h1>
@@ -79,5 +98,7 @@
             </a>
         </div>
 
-    </div> </body>
+    </div>
+
+</body>
 </html>

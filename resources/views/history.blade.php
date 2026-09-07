@@ -4,19 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finance History</title>
-    
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
         @media print {
-            /* This shrinks the physical paper margins so your content fills the page */
             @page {
                 size: auto;
-                margin: 10mm; 
+                margin: 10mm;
             }
-            /* Forces the browser to print your beautiful background colors */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -24,13 +20,37 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen p-6 print:p-0 print:bg-gray-100">
+<body class="bg-gray-50 min-h-screen">
 
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 mb-10 print:mb-0">
-        
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 print:hidden">
+        <div class="max-w-md mx-auto px-4">
+            <div class="flex items-center justify-between h-14">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="ph ph-clock-counter-clockwise text-white text-sm"></i>
+                    </div>
+                    <span class="text-sm font-bold text-gray-800">History</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="/" class="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 transition">
+                        <i class="ph ph-calendar"></i>
+                        Tracker
+                    </a>
+                    <a href="/logout" class="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition">
+                        <i class="ph ph-sign-out"></i>
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-md mx-auto px-4 py-6">
+
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold">History</h1>
-            
+
             <div class="flex items-center space-x-4 print:hidden">
                 <button onclick="window.print()" class="flex items-center space-x-1 text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition">
                     <i class="ph ph-printer text-lg"></i>
