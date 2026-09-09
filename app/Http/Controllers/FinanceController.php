@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Transaction;
+use App\Models\AccountBalance;
 use Carbon\Carbon;
 
 class FinanceController extends Controller
@@ -135,7 +137,13 @@ class FinanceController extends Controller
         }
 
         foreach ($distributions as $tx) {
-            $dist = is_string($tx->savings_distribution) ? (json_decode($tx->savings_distribution, true) ?? []) : ($tx->savings_distribution ?? []);
+            $raw = $tx->savings_distribution;
+            if (!is_string($raw) || $raw === '') {
+                $dist = [];
+            } else {
+                $decoded = json_decode($raw, true);
+                $dist = is_array($decoded) ? $decoded : [];
+            }
             foreach ($dist as $item) {
                 $cat = $item['category'] ?? '';
                 $amt = (float) ($item['amount'] ?? 0);
@@ -215,6 +223,16 @@ class FinanceController extends Controller
             ];
         });
 
+        // ── Account Balance Distribution ─────────────────────────────
+        // Balance = sum of Money In per account, minus Money Out per account
+        $accountBalances = [];
+        foreach (AccountBalance::TYPES as $type) {
+            $inTotal  = (float) $all->where('account_type', $type)->where('type', 'in')->sum('amount');
+            $outTotal = (float) $all->where('account_type', $type)->where('type', 'out')->sum('amount');
+            $accountBalances[$type] = $inTotal - $outTotal;
+        }
+        $totalAccountBalance = array_sum($accountBalances);
+
         return view('dashboard', compact(
             'filter', 'type', 'search', 'from', 'to',
             'totalIn', 'totalOut', 'netBalance', 'transactionCount',
@@ -230,6 +248,8 @@ class FinanceController extends Controller
             'unsplitIn', 'unsplitInTx', 'uncategorizedOut',
             'streak', 'badges', 'splitSavingsRate', 'saveVsSpendMessage', 'needVsWantMessage',
             'categorizedSavings', 'distributionChart', 'totalAllocated', 'hasDistributions',
+            // Account balances
+            'accountBalances', 'totalAccountBalance',
         ));
     }
 
@@ -367,6 +387,7 @@ class FinanceController extends Controller
             'type' => $request->type,
             'transaction_date' => $request->transaction_date,
             'username' => session('username'),
+            'account_type' => $request->account_type ?: null,
         ];
 
         // Handle income split
@@ -422,6 +443,7 @@ class FinanceController extends Controller
         ]);
 
         $data = $request->only(['description', 'amount', 'type', 'transaction_date']);
+        $data['account_type'] = $request->account_type ?: null;
 
         // Handle income split update
         if ($request->type === 'in' && $request->has('is_split') && $request->is_split == '1') {
@@ -485,6 +507,11 @@ class FinanceController extends Controller
 
         session(['landing' => $request->landing]);
 
+        $target = $request->input('_target');
+        if ($target && in_array($target, ['/', '/dashboard'])) {
+            return redirect($target);
+        }
+
         return back();
     }
 
@@ -505,7 +532,7 @@ class FinanceController extends Controller
         $spendPct = (float) $request->input('spend_pct', 100 - $savePct);
 
         if (empty($transactionIds) && empty($distribution)) {
-            return redirect('/dashboard');
+            return $this->redirectAfterAction($request);
         }
 
         $dist = null;
@@ -556,13 +583,38 @@ class FinanceController extends Controller
             }
         }
 
-        return redirect('/dashboard');
+        return $this->redirectAfterAction($request);
+    }
+
+    public function saveAccountBalances(Request $request)
+    {
+        $username = session('username');
+        $balances = $request->input('balances', []);
+
+        foreach (AccountBalance::TYPES as $type) {
+            $amount = isset($balances[$type]) ? (float) $balances[$type] : 0;
+            AccountBalance::updateOrCreate(
+                ['username' => $username, 'account_type' => $type],
+                ['balance' => $amount]
+            );
+        }
+
+        return $this->redirectAfterAction($request);
     }
 
     private function redirectAfterAction(Request $request): \Illuminate\Http\RedirectResponse
     {
-        $landing = session('landing', 'tracker');
+        // Prefer the HTTP Referer so the user lands back on the page they submitted from.
+        $referer = $request->headers->get('referer', '');
+        if ($referer && filter_var($referer, FILTER_VALIDATE_URL)) {
+            $parsed = parse_url($referer);
+            $path = $parsed['path'] ?? '/';
+            $query = isset($parsed['query']) ? '?' . $parsed['query'] : '';
+            return redirect($path . $query);
+        }
 
+        // Fall back to the user's stored landing preference
+        $landing = session('landing', 'tracker');
         if ($landing === 'dashboard') {
             return redirect('/dashboard');
         }

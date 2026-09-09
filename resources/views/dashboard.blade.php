@@ -386,12 +386,13 @@
                     </div>
                 </div>
                 <nav class="flex items-center gap-1">
-                    <form action="/preference" method="POST" class="flex items-center">
+                    <form action="{{ route('preference') }}" method="POST" class="flex items-center" onsubmit="this._target.value = '{{ session('landing') === 'dashboard' ? '/' : '/dashboard' }}'">
                         @csrf
                         <input type="hidden" name="landing" value="{{ session('landing') === 'dashboard' ? 'tracker' : 'dashboard' }}">
+                        <input type="hidden" name="_target" value="">
                         <button type="submit" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition
                             {{ session('landing') === 'dashboard' ? 'bg-white/20 text-white' : 'text-blue-100 hover:text-white hover:bg-white/10' }}
-                            border border-white/30 hover:bg-white/10" title="Set as default landing: {{ session('landing') === 'dashboard' ? 'Tracker' : 'Dashboard' }}">
+                            border border-white/30 hover:bg-white/10" title="Switch to {{ session('landing') === 'dashboard' ? 'Tracker' : 'Dashboard' }}">
                             <i class="ph {{ session('landing') === 'dashboard' ? 'ph-house' : 'ph-chart-line-up' }} text-base"></i>
                             {{ session('landing') === 'dashboard' ? 'Default: Dashboard' : 'Default: Tracker' }}
                         </button>
@@ -453,6 +454,17 @@
                     </label>
                     <input type="date" name="transaction_date" value="{{ \Carbon\Carbon::now()->toDateString() }}" required
                         class="w-full border border-gray-100 p-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition">
+                </div>
+                <div class="w-32 shrink-0">
+                    <label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+                        <i class="ph ph-wallet mr-1"></i>Account
+                    </label>
+                    <select name="account_type" class="w-full border border-gray-100 p-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition">
+                        <option value="">—</option>
+                        @foreach(['Cash', 'Bank', 'E-Wallet', 'Savings'] as $acc)
+                            <option value="{{ $acc }}">{{ $acc }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <button type="button" onclick="openSplitModal(this.form)"
                     class="flex-1 bg-green-500 hover:bg-green-600 active:scale-95 text-white font-bold py-3 px-5 rounded-2xl transition-all text-sm shadow-lg shadow-green-200 hover:shadow-green-300 flex items-center justify-center gap-2">
@@ -774,6 +786,40 @@
                         </p>
                         <p class="text-xs text-gray-400">Daily Avg</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- Account Balance Distribution -->
+            <div class="card">
+                <h3 class="text-sm font-bold text-gray-700 mb-4">
+                    <i class="ph ph-wallet text-indigo-500 mr-1"></i>Balance
+                </h3>
+
+                @php
+                    $ACC_COLORS  = ['Cash' => '#f59e0b', 'Bank' => '#3b82f6', 'E-Wallet' => '#8b5cf6', 'Savings' => '#22c55e'];
+                    $ACC_BG      = ['Cash' => '#fef3c7', 'Bank' => '#dbeafe', 'E-Wallet' => '#ede9fe', 'Savings' => '#dcfce7'];
+                    $ACC_ICONS   = ['Cash' => '💵', 'Bank' => '🏦', 'E-Wallet' => '📱', 'Savings' => '🏠'];
+                @endphp
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    @foreach(['Cash', 'Bank', 'E-Wallet', 'Savings'] as $accName)
+                        @php $accBal = $accountBalances[$accName] ?? 0; @endphp
+                        <div class="rounded-2xl p-4 text-center"
+                            style="background:{{ $ACC_BG[$accName] ?? '#f3f4f6' }}">
+                            <div class="text-2xl mb-1">{{ $ACC_ICONS[$accName] ?? '💰' }}</div>
+                            <div class="text-xs font-semibold text-gray-500 mb-1">{{ $accName }}</div>
+                            <div class="text-base font-black {{ $accBal < 0 ? 'text-red-500' : 'text-gray-900' }}">
+                                Rp {{ number_format(abs($accBal), 0) }}
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="border-t border-gray-100 pt-3 text-center">
+                    <span class="text-xs text-gray-400">Total</span>
+                    <span class="text-xl font-black text-gray-900 block">
+                        Rp {{ number_format($totalAccountBalance, 0) }}
+                    </span>
                 </div>
             </div>
 
@@ -1337,6 +1383,20 @@
                 </div>
             </div>
 
+            <!-- Account selector -->
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 text-center">
+                    <i class="ph ph-wallet mr-1"></i>Pay from account
+                </label>
+                <select id="expenseAccountSelect"
+                    class="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400 bg-gray-50 text-center">
+                    <option value="">— None —</option>
+                    @foreach(['Cash', 'Bank', 'E-Wallet', 'Savings'] as $acc)
+                        <option value="{{ $acc }}">{{ $acc }}</option>
+                    @endforeach
+                </select>
+            </div>
+
             <!-- Category picker (reveals after Need/Want selection) -->
             <div id="catReveal" class="cat-reveal">
                 <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 text-center">Pick a category</p>
@@ -1438,6 +1498,7 @@
         </div>
     </div>
 
+    <!-- Account Balance Modal -->
     <!-- Hidden forms -->
     <form id="splitForm" action="{{ route('store') }}" method="POST" class="hidden">
         @csrf
@@ -1452,6 +1513,7 @@
         <input type="hidden" name="is_split" id="splitFormIsSplit" value="1">
         <input type="hidden" name="split_preset" id="splitFormPreset">
         <input type="hidden" name="savings_distribution" id="splitFormDist">
+        <input type="hidden" name="account_type" id="splitFormAccount">
     </form>
 
     <form id="distributionForm" action="{{ route('saveDistribution') }}" method="POST" class="hidden">
@@ -1470,6 +1532,7 @@
         <input type="hidden" name="transaction_date" id="expenseFormDate">
         <input type="hidden" name="need_or_want" id="expenseFormNow">
         <input type="hidden" name="expense_category" id="expenseFormCat">
+        <input type="hidden" name="account_type" id="expenseFormAccount">
     </form>
 
     <script>
@@ -1810,6 +1873,7 @@
             document.getElementById('splitFormSavedAmt').value = saveAmt;
             document.getElementById('splitFormSpentAmt').value = spendAmt;
             document.getElementById('splitFormPreset').value = splitPreset;
+            document.getElementById('splitFormAccount').value = pendingForm && pendingForm.account_type ? pendingForm.account_type.value : '';
 
             // DEBUG
             console.log('submitWithSplit called', {
@@ -1966,6 +2030,10 @@
             document.getElementById('expenseDescDisplay').textContent =
                 'for: ' + expenseDesc;
 
+            // Set account type from form and update balance display
+            const accSelect = document.getElementById('expenseAccountSelect');
+            accSelect.value = form.account_type ? form.account_type.value : '';
+
             // Reset state
             selectedNow = null;
             selectedCat = null;
@@ -2040,11 +2108,13 @@
             }
             document.getElementById('expenseFormNow').value = selectedNow || '';
             document.getElementById('expenseFormCat').value = selectedCat || '';
+            document.getElementById('expenseFormAccount').value = document.getElementById('expenseAccountSelect').value || '';
 
             // DEBUG
             console.log('submitWithCategory', {
                 expenseDesc, expenseAmount, expenseDate,
-                selectedNow, selectedCat
+                selectedNow, selectedCat,
+                accountType: document.getElementById('expenseAccountSelect').value
             });
 
             closeExpenseModal();

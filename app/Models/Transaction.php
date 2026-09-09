@@ -28,5 +28,7 @@ class Transaction extends Model
         // Expense category
         'need_or_want',
         'expense_category',
+        // Account type
+        'account_type',
     ];
 }

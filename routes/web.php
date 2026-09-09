@@ -38,6 +38,7 @@ Route::middleware([CheckUsername::class])->group(function () {
     // Analytics dashboard — available to all logged-in users
     Route::get('/dashboard', [FinanceController::class, 'dashboard'])->name('dashboard');
     Route::post('/dashboard/distribution', [FinanceController::class, 'saveDistribution'])->name('saveDistribution');
+    Route::post('/dashboard/account-balances', [FinanceController::class, 'saveAccountBalances'])->name('saveAccountBalances');
 
     // Tracker — the default landing for most users
     Route::get('/', [FinanceController::class, 'index']);

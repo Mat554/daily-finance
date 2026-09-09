@@ -20,10 +20,16 @@
                     <span class="text-sm font-bold text-gray-800">{{ session('username') }}</span>
                 </div>
                 <div class="flex items-center gap-3">
-                    <a href="/dashboard" class="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 transition font-medium">
-                        <i class="ph ph-chart-line-up"></i>
-                        Dashboard
-                    </a>
+                    <form action="{{ route('preference') }}" method="POST" onsubmit="this._target.value = '{{ session('landing') === 'dashboard' ? '/' : '/dashboard' }}'">
+                        @csrf
+                        <input type="hidden" name="landing" value="{{ session('landing') === 'dashboard' ? 'tracker' : 'dashboard' }}">
+                        <input type="hidden" name="_target" value="">
+                        <button type="submit" class="text-xs font-medium flex items-center gap-1 transition
+                            {{ session('landing') === 'tracker' ? 'text-blue-600 font-bold' : 'text-gray-400 hover:text-blue-500' }}">
+                            <i class="ph {{ session('landing') === 'tracker' ? 'ph-house-fill' : 'ph-house' }}"></i>
+                            Default: {{ session('landing') === 'tracker' ? 'Tracker' : 'Dashboard' }}
+                        </button>
+                    </form>
                     <a href="/logout" class="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition">
                         <i class="ph ph-sign-out"></i>
                         Logout
@@ -60,12 +66,18 @@
 
         <form action="{{ route('store') }}" method="POST" class="mb-6 space-y-3 border-b-2 border-gray-100 pb-6">
             @csrf
-            
+
             <input type="date" name="transaction_date" value="{{ $currentDate }}" class="w-full border p-2 rounded text-gray-700" onchange="window.location.href='/?date=' + this.value" required>
-            
+
             <input type="text" name="description" placeholder="What was it?" class="w-full border p-2 rounded" required>
             <input type="number" name="amount" placeholder="Amount" class="w-full border p-2 rounded" required>
-            
+            <select name="account_type" class="w-full border p-2 rounded text-gray-600">
+                <option value="">— Account (optional) —</option>
+                @foreach(['Cash', 'Bank', 'E-Wallet', 'Savings'] as $acc)
+                    <option value="{{ $acc }}">{{ $acc }}</option>
+                @endforeach
+            </select>
+
             <div class="flex gap-2 pt-2">
                 <button type="submit" name="type" value="in" class="flex-1 bg-green-500 text-white font-semibold py-2 rounded hover:bg-green-600 transition">Money In</button>
                 <button type="submit" name="type" value="out" class="flex-1 bg-red-500 text-white font-semibold py-2 rounded hover:bg-red-600 transition">Money Out</button>

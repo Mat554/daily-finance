@@ -83,6 +83,20 @@
                 </div>
             </div>
 
+            <!-- Account Type -->
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                    <i class="ph ph-wallet mr-1"></i>Account
+                </label>
+                <select name="account_type"
+                    class="w-full border border-gray-100 p-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                    <option value="">— None —</option>
+                    @foreach(['Cash', 'Bank', 'E-Wallet', 'Savings'] as $acc)
+                        <option value="{{ $acc }}" {{ $transaction->account_type === $acc ? 'selected' : '' }}>{{ $acc }}</option>
+                    @endforeach
+                </select>
+            </div>
+
             <!-- Income Split Section -->
             @if($transaction->type === 'in')
             <div id="splitSection" class="border border-emerald-200 rounded-2xl p-4 bg-emerald-50/50">
