@@ -233,6 +233,10 @@ class FinanceController extends Controller
         }
         $totalAccountBalance = array_sum($accountBalances);
 
+        // ── Distribution Template ──────────────────────────────────────
+        $distributionTemplate = session('distribution_template', []);
+        $distributionSavePct = session('distribution_save_pct', 50);
+
         return view('dashboard', compact(
             'filter', 'type', 'search', 'from', 'to',
             'totalIn', 'totalOut', 'netBalance', 'transactionCount',
@@ -250,6 +254,8 @@ class FinanceController extends Controller
             'categorizedSavings', 'distributionChart', 'totalAllocated', 'hasDistributions',
             // Account balances
             'accountBalances', 'totalAccountBalance',
+            // Distribution template
+            'distributionTemplate', 'distributionSavePct',
         ));
     }
 
@@ -390,7 +396,7 @@ class FinanceController extends Controller
             'account_type' => $request->account_type ?: null,
         ];
 
-        // Handle income split
+        // Handle income split — auto-apply distribution template if set
         if ($request->type === 'in' && $request->has('is_split') && $request->is_split == '1') {
             $savePct = (float) $request->save_pct;
             $spendPct = (float) $request->spend_pct;
@@ -399,27 +405,58 @@ class FinanceController extends Controller
                 $spendPct = 100 - $savePct;
             }
 
+            $savedAmt = $request->amount * $savePct / 100;
+            $spentAmt = $request->amount * $spendPct / 100;
+
+            // Auto-apply distribution template if one exists and user didn't override
+            $distJson = null;
+            $savingsAllocated = false;
+            if ($request->has('savings_distribution') && !empty($request->savings_distribution)) {
+                $distJson = json_encode($request->savings_distribution);
+                $savingsAllocated = true;
+            } else {
+                // Check for auto-apply flag or use template automatically
+                $template = session('distribution_template', []);
+                if (!empty($template)) {
+                    $dist = [];
+                    foreach ($template as $item) {
+                        $dist[] = [
+                            'category' => $item['name'],
+                            'pct' => $item['pct'],
+                            'icon' => $item['icon'] ?? '📦',
+                            'amount' => round($savedAmt * $item['pct'] / 100),
+                        ];
+                    }
+                    $distJson = json_encode($dist);
+                    $savingsAllocated = true;
+                }
+            }
+
             $data = array_merge($data, [
                 'save_pct' => $savePct,
                 'spend_pct' => $spendPct,
-                'saved_amount' => $request->amount * $savePct / 100,
-                'spent_amount' => $request->amount * $spendPct / 100,
+                'saved_amount' => $savedAmt,
+                'spent_amount' => $spentAmt,
                 'is_split' => true,
                 'split_preset' => $request->split_preset ?? 'custom',
-                'savings_distribution' => $request->has('savings_distribution')
-                    ? json_encode($request->savings_distribution)
-                    : null,
-                'savings_allocated' => $request->has('savings_distribution') && !empty($request->savings_distribution),
+                'savings_distribution' => $distJson,
+                'savings_allocated' => $savingsAllocated,
             ]);
         }
 
-        // Handle expense category
+        // Handle expense category and distribution deduction for Money Out
         if ($request->type === 'out') {
             if ($request->has('need_or_want')) {
                 $data['need_or_want'] = $request->need_or_want;
             }
             if ($request->has('expense_category')) {
                 $data['expense_category'] = $request->expense_category;
+            }
+            // Money Out can optionally deduct from a distribution category
+            if ($request->has('distribution_category') && !empty($request->distribution_category)) {
+                $data['savings_distribution'] = json_encode([
+                    ['category' => $request->distribution_category, 'pct' => 100, 'amount' => $request->amount],
+                ]);
             }
         }
 
@@ -583,6 +620,39 @@ class FinanceController extends Controller
             }
         }
 
+        return $this->redirectAfterAction($request);
+    }
+
+    public function saveDistributionTemplate(Request $request)
+    {
+        $template = $request->input('template', []);
+        $savePct = (float) $request->input('save_pct', 50);
+
+        if (is_string($template)) {
+            $template = json_decode($template, true) ?? [];
+        }
+
+        // Ensure valid template entries
+        $clean = [];
+        foreach ($template as $item) {
+            $name = trim($item['name'] ?? '');
+            $pct = (float) ($item['pct'] ?? 0);
+            $icon = $item['icon'] ?? '📦';
+            if ($name !== '' && $pct > 0) {
+                $clean[] = ['name' => $name, 'pct' => $pct, 'icon' => $icon];
+            }
+        }
+
+        session(['distribution_template' => $clean]);
+        session(['distribution_save_pct' => $savePct]);
+
+        return $this->redirectAfterAction($request);
+    }
+
+    public function deleteDistributionTemplate(Request $request)
+    {
+        session()->forget('distribution_template');
+        session()->forget('distribution_save_pct');
         return $this->redirectAfterAction($request);
     }
 

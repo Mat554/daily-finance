@@ -967,85 +967,94 @@
                         @endif
                     </p>
                 </div>
-                @if($totalAllocated > 0)
-                <button onclick="openDistributionModal()"
+                <button onclick="openTemplateModal()"
                     class="text-xs font-bold text-emerald-600 hover:text-emerald-800 px-3 py-1.5 rounded-xl hover:bg-emerald-50 transition border border-emerald-200">
-                    <i class="ph ph-plus mr-1"></i>Add
+                    <i class="ph ph-{{ empty($distributionTemplate) ? 'ph-plus' : 'ph-pencil-simple' }} mr-1"></i>
+                    {{ empty($distributionTemplate) ? 'Set Up' : 'Edit Template' }}
                 </button>
-                @endif
             </div>
 
-            @if(!$hasDistributions || $totalAllocated == 0)
-                <!-- Empty state -->
+            @if(empty($distributionTemplate))
+                <!-- No template yet -->
                 <div class="text-center py-8">
                     <div class="text-4xl mb-3">🏦</div>
-                    <p class="text-sm font-semibold text-gray-500 mb-1">No distributions yet</p>
-                    <p class="text-xs text-gray-400 mb-4">Distribute your saved money into categories like Emergency Fund, Investment, and Goals.</p>
-                    <button onclick="openDistributionSetupModal()"
+                    <p class="text-sm font-semibold text-gray-500 mb-1">No distribution template yet</p>
+                    <p class="text-xs text-gray-400 mb-4">Set up how your savings split automatically. E.g. 25% each into 4 categories.</p>
+                    <button onclick="openTemplateModal()"
                         class="text-xs font-bold text-emerald-600 hover:text-emerald-800 px-4 py-2 rounded-xl hover:bg-emerald-50 transition border border-emerald-200">
-                        Set Up Distribution
+                        Set Up Template
                     </button>
                 </div>
             @else
-                <!-- Category bars -->
+                <!-- Template preview -->
                 @php
-                    $maxDist = collect($distributionChart)->max('amount') ?: 1;
-                    $distColors = [
-                        'Emergency Fund' => '#22c55e',
-                        'Investment'    => '#3b82f6',
-                        'Goals'         => '#f59e0b',
-                        'Buffer'        => '#a78bfa',
-                    ];
-                    $distIcons = [
-                        'Emergency Fund' => '🛡️',
-                        'Investment'    => '📈',
-                        'Goals'         => '🎯',
-                        'Buffer'        => '💼',
-                    ];
+                    $templateTotalPct = collect($distributionTemplate)->sum('pct');
+                    $templateColors = ['#22c55e', '#3b82f6', '#f59e0b', '#a78bfa', '#f472b6', '#fb923c', '#14b8a6', '#e879f9'];
+                    $templateIcons = ['🛡️', '📈', '🎯', '💼', '🏠', '✈️', '🎓', '💰'];
                 @endphp
-                <div class="space-y-3">
-                    @foreach($distributionChart as $item)
-                        @if($item['amount'] > 0)
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-base">{{ $distIcons[$item['category']] ?? '📦' }}</span>
-                                    <span class="text-sm font-semibold text-gray-700">{{ $item['category'] }}</span>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-xs text-gray-400 font-medium">{{ $item['pct'] }}%</span>
-                                    <span class="text-sm font-black text-gray-800">Rp {{ number_format($item['amount'], 0) }}</span>
-                                </div>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-                                <div class="h-full rounded-full transition-all duration-700"
-                                    style="width: {{ $maxDist > 0 ? round($item['amount'] / $maxDist * 100) : 0 }}%; background-color: {{ $distColors[$item['category']] ?? '#6b7280' }};"></div>
-                            </div>
+                <div class="flex gap-2 mb-3">
+                    @foreach($distributionTemplate as $i => $item)
+                        <div class="flex-1 rounded-2xl p-3 text-center"
+                            style="background: {{ $templateColors[$i] ?? '#6b7280' }}15; border: 1px solid {{ $templateColors[$i] ?? '#6b7280' }}30;">
+                            <div class="text-lg mb-1">{{ $item['icon'] ?? ($templateIcons[$i] ?? '📦') }}</div>
+                            <div class="text-lg font-black" style="color: {{ $templateColors[$i] ?? '#6b7280' }}">{{ $item['pct'] }}%</div>
+                            <div class="text-[10px] text-gray-500 font-semibold truncate">{{ $item['name'] }}</div>
                         </div>
-                        @endif
                     @endforeach
                 </div>
-
-                <!-- Total allocated summary -->
-                <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Allocated</span>
-                    <span class="text-lg font-black text-emerald-600">Rp {{ number_format($totalAllocated, 0) }}</span>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-gray-400">Total: <span class="font-bold {{ $templateTotalPct == 100 ? 'text-emerald-600' : 'text-red-500' }}">{{ $templateTotalPct }}%</span></span>
+                    <span class="text-xs text-emerald-500 font-bold">Auto-applied on split</span>
                 </div>
-
-                <!-- Undistributed savings nudge -->
-                @if($totalSaved > $totalAllocated)
-                <div class="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-bold text-amber-700">
-                            <span class="mr-1">💡</span>Rp {{ number_format($totalSaved - $totalAllocated, 0) }} not yet distributed
-                        </p>
-                        <p class="text-[10px] text-amber-500 mt-0.5">Distribute your saved amount to track it better.</p>
+                @if($templateTotalPct != 100)
+                    <div class="mt-2 p-2 rounded-xl bg-amber-50 border border-amber-200 text-center">
+                        <p class="text-xs text-amber-700 font-bold">⚠️ Template must total 100% to work</p>
                     </div>
-                    <button onclick="openDistributionSetupModal()"
-                        class="shrink-0 text-xs font-bold text-amber-600 hover:text-amber-800 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition">
-                        Distribute →
-                    </button>
-                </div>
+                @endif
+
+                <!-- Category bars -->
+                @if(count($distributionChart) > 0 && $totalAllocated > 0)
+                    @php
+                        $maxDist = collect($distributionChart)->max('amount') ?: 1;
+                        $distColors = [
+                            'Emergency Fund' => '#22c55e',
+                            'Investment'    => '#3b82f6',
+                            'Goals'         => '#f59e0b',
+                            'Buffer'        => '#a78bfa',
+                        ];
+                        $distIcons = [
+                            'Emergency Fund' => '🛡️',
+                            'Investment'    => '📈',
+                            'Goals'         => '🎯',
+                            'Buffer'        => '💼',
+                        ];
+                    @endphp
+                    <div class="space-y-3 mt-4">
+                        @foreach($distributionChart as $item)
+                            @if($item['amount'] > 0)
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-base">{{ $distIcons[$item['category']] ?? '📦' }}</span>
+                                        <span class="text-sm font-semibold text-gray-700">{{ $item['category'] }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs text-gray-400 font-medium">{{ $item['pct'] }}%</span>
+                                        <span class="text-sm font-black text-gray-800">Rp {{ number_format($item['amount'], 0) }}</span>
+                                    </div>
+                                </div>
+                                <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                                    <div class="h-full rounded-full transition-all duration-700"
+                                        style="width: {{ $maxDist > 0 ? round($item['amount'] / $maxDist * 100) : 0 }}%; background-color: {{ $distColors[$item['category']] ?? '#6b7280' }};"></div>
+                                </div>
+                            </div>
+                            @endif
+                        @endforeach
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Allocated</span>
+                        <span class="text-lg font-black text-emerald-600">Rp {{ number_format($totalAllocated, 0) }}</span>
+                    </div>
                 @endif
             @endif
         </div>
@@ -1405,6 +1414,19 @@
                 </div>
             </div>
 
+            <!-- Distribution deduction selector (optional) -->
+            <div id="distDeduceSection" class="mt-3 border-t border-gray-100 pt-3">
+                <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2 text-center flex items-center justify-center gap-1">
+                    <i class="ph ph-vault"></i> Deduct from savings
+                </p>
+                <select id="distCatSelect"
+                    class="w-full border border-emerald-200 rounded-2xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-50 text-center">
+                    <option value="">— Split evenly (all categories) —</option>
+                    <!-- Filled by JS based on template -->
+                </select>
+                <p class="text-[10px] text-gray-400 mt-1 text-center">Optional: pick where this expense comes from</p>
+            </div>
+
             <!-- Motivational -->
             <p id="expenseMessage" class="text-center text-sm italic text-gray-400 mb-5">
                 Tag it to see insights!
@@ -1419,6 +1441,62 @@
                 <button type="button" id="expenseSubmitBtn" onclick="submitWithCategory()"
                     class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-sm shadow-lg shadow-pink-200 hover:shadow-pink-300 hover:from-pink-600 hover:to-rose-600 active:scale-95 transition-all flex items-center justify-center gap-2">
                     🏷️ Log Expense
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         DISTRIBUTION TEMPLATE SETUP MODAL
+    ═══════════════════════════════════════════════════════ -->
+    <div id="templateModal" class="modal-overlay" onclick="if(event.target===this)closeTemplateModal()">
+        <div class="modal-box" style="max-width:520px">
+            <div class="text-center mb-5">
+                <div class="w-16 h-16 bg-emerald-100 border-4 border-emerald-400 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl">
+                    ⚙️
+                </div>
+                <h2 class="text-xl font-black text-gray-900">Distribution Template</h2>
+                <p class="text-sm text-gray-400 mt-1">Set how your savings split automatically when you receive money</p>
+            </div>
+
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Save % (of each Money In)</p>
+            <div class="flex items-center gap-3 mb-4">
+                <input type="range" id="tmplSaveSlider" min="0" max="100" value="{{ $distributionSavePct }}"
+                    class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    oninput="document.getElementById('tmplSavePctLabel').textContent=this.value+'%'">
+                <span class="text-lg font-black text-emerald-600 w-14 text-center" id="tmplSavePctLabel">{{ $distributionSavePct }}%</span>
+            </div>
+
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Distribution categories</p>
+            <div id="tmplCategories" class="space-y-2 mb-3 max-h-60 overflow-y-auto">
+                <!-- Filled by JS -->
+            </div>
+
+            <button type="button" onclick="addTemplateRow()"
+                class="w-full text-xs font-bold text-emerald-600 hover:text-emerald-800 py-2 rounded-xl hover:bg-emerald-50 transition border border-dashed border-emerald-200 mb-3">
+                <i class="ph ph-plus mr-1"></i>Add Category
+            </button>
+
+            <!-- Preview bar -->
+            <div class="mb-3">
+                <div class="flex gap-1 h-4 rounded-full overflow-hidden" id="tmplPreviewBar">
+                    <!-- Filled by JS -->
+                </div>
+                <div class="flex justify-between mt-1">
+                    <span class="text-[10px] text-gray-400" id="tmplTotalPctLabel">0%</span>
+                    <span class="text-[10px] text-gray-400" id="tmplTotalError" style="display:none" class="text-red-400 font-bold">Must equal 100%</span>
+                </div>
+            </div>
+
+            <!-- Save template -->
+            <div class="flex gap-3">
+                <button type="button" onclick="deleteTemplate()"
+                    class="flex-1 py-3 rounded-2xl border-2 border-red-200 text-sm font-bold text-red-400 hover:bg-red-50 transition">
+                    Delete
+                </button>
+                <button type="button" onclick="saveTemplate()"
+                    class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-200 hover:shadow-emerald-300 hover:from-emerald-600 hover:to-teal-600 active:scale-95 transition-all flex items-center justify-center gap-2">
+                    💾 Save Template
                 </button>
             </div>
         </div>
@@ -1524,6 +1602,12 @@
         <input type="hidden" name="distribution" id="distributionFormData">
     </form>
 
+    <form id="distributionTemplateForm" action="{{ route('saveDistributionTemplate') }}" method="POST" class="hidden">
+        @csrf
+        <input type="hidden" name="template" id="distTemplateData">
+        <input type="hidden" name="save_pct" id="distTemplateSavePct">
+    </form>
+
     <form id="expenseForm" action="{{ route('store') }}" method="POST" class="hidden">
         @csrf
         <input type="hidden" name="description" id="expenseFormDesc">
@@ -1533,6 +1617,7 @@
         <input type="hidden" name="need_or_want" id="expenseFormNow">
         <input type="hidden" name="expense_category" id="expenseFormCat">
         <input type="hidden" name="account_type" id="expenseFormAccount">
+        <input type="hidden" name="distribution_category" id="expenseFormDistCat">
     </form>
 
     <script>
@@ -1660,10 +1745,27 @@
         let distState = {
             enabled: false,
             total: 0,
-            amounts: { 'Emergency Fund': 0, 'Investment': 0, 'Goals': 0, 'Buffer': 0 },
-            pct: { 'Emergency Fund': 25, 'Investment': 25, 'Goals': 25, 'Buffer': 25 },
-            totalPct: 100,
+            amounts: {},
+            pct: {},
+            totalPct: 0,
+            templateLoaded: false,
         };
+
+        // Load template from PHP
+        const DIST_TEMPLATE = @json($distributionTemplate);
+        const DIST_COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#a78bfa', '#f472b6', '#fb923c', '#14b8a6', '#e879f9'];
+        const DIST_ICONS  = ['🛡️', '📈', '🎯', '💼', '🏠', '✈️', '🎓', '💰'];
+
+        function initDistStateFromTemplate() {
+            if (DIST_TEMPLATE.length > 0) {
+                DIST_TEMPLATE.forEach(cat => {
+                    distState.amounts[cat.name] = 0;
+                    distState.pct[cat.name] = cat.pct;
+                });
+                distState.totalPct = DIST_TEMPLATE.reduce((sum, c) => sum + c.pct, 0);
+            }
+        }
+        initDistStateFromTemplate();
 
         function openSplitModal(form) {
             console.log('openSplitModal called', form);
@@ -1795,13 +1897,28 @@
         ];
 
         function openDistSection() {
-            const saveAmt = splitAmount * parseInt(document.getElementById('splitSlider').value) / 100;
+            const savePct = parseInt(document.getElementById('splitSlider').value);
+            const saveAmt = splitAmount * savePct / 100;
             distState.total = saveAmt;
             distState.enabled = true;
-            // Reset to 25/25/25/25
-            DIST_CATEGORIES.forEach(c => {
-                distState.amounts[c.name] = saveAmt * c.pct / 100;
-            });
+
+            // If template exists, use it; otherwise use defaults
+            if (DIST_TEMPLATE.length > 0) {
+                DIST_TEMPLATE.forEach(cat => {
+                    distState.amounts[cat.name] = saveAmt * cat.pct / 100;
+                    distState.pct[cat.name] = cat.pct;
+                });
+                distState.totalPct = DIST_TEMPLATE.reduce((sum, c) => sum + c.pct, 0);
+            } else {
+                // Fallback to 25/25/25/25
+                const cats = ['Emergency Fund', 'Investment', 'Goals', 'Buffer'];
+                cats.forEach((name, i) => {
+                    distState.amounts[name] = saveAmt * 25 / 100;
+                    distState.pct[name] = 25;
+                });
+                distState.totalPct = 100;
+            }
+
             buildDistCategoryUI();
             document.getElementById('distSection').classList.remove('hidden');
             document.getElementById('distSaveAmtLabel').textContent = Math.round(saveAmt).toLocaleString('id-ID');
@@ -1816,24 +1933,34 @@
         function buildDistCategoryUI() {
             const container = document.getElementById('distCategories');
             container.innerHTML = '';
-            DIST_CATEGORIES.forEach(cat => {
-                const pct = distState.pct[cat.name];
-                const amt = distState.amounts[cat.name];
+
+            const cats = DIST_TEMPLATE.length > 0 ? DIST_TEMPLATE : [
+                { name: 'Emergency Fund', color: '#22c55e', icon: '🛡️' },
+                { name: 'Investment',     color: '#3b82f6', icon: '📈' },
+                { name: 'Goals',          color: '#f59e0b', icon: '🎯' },
+                { name: 'Buffer',         color: '#a78bfa', icon: '💼' },
+            ];
+
+            cats.forEach((cat, idx) => {
+                const pct = distState.pct[cat.name] ?? 0;
+                const amt = distState.amounts[cat.name] ?? 0;
+                const color = cat.color || (DIST_COLORS[idx] || '#6b7280');
+                const icon = cat.icon || (DIST_ICONS[idx] || '📦');
                 container.innerHTML += `
                     <div class="flex items-center gap-2">
-                        <span class="text-sm w-6 text-center">${cat.icon}</span>
+                        <span class="text-sm w-6 text-center">${icon}</span>
                         <span class="text-xs font-semibold text-gray-600 w-24 truncate">${cat.name}</span>
                         <input type="range" min="0" max="100" value="${pct}"
                             class="flex-1 h-1.5 rounded-full cursor-pointer"
-                            style="accent-color:${cat.color}"
-                            oninput="updateDistPct('${cat.name}', this.value)">
+                            style="accent-color:${color}"
+                            oninput="updateDistPct('${cat.name.replace(/'/g, "\\'")}', this.value, '${color}')">
                         <span class="text-xs font-bold text-gray-500 w-8 text-right">${pct}%</span>
-                        <span class="text-xs font-bold ${cat.color.replace('#','text-')} w-24 text-right">Rp ${Math.round(amt).toLocaleString('id-ID')}</span>
+                        <span class="text-xs font-bold w-24 text-right" style="color:${color}">Rp ${Math.round(amt).toLocaleString('id-ID')}</span>
                     </div>`;
             });
         }
 
-        function updateDistPct(catName, pctVal) {
+        function updateDistPct(catName, pctVal, color) {
             const pct = parseInt(pctVal);
             distState.pct[catName] = pct;
             distState.amounts[catName] = distState.total * pct / 100;
@@ -1850,11 +1977,19 @@
             totalPct.textContent = total + '%';
             error.classList.toggle('hidden', total === 100);
             bar.innerHTML = '';
-            let offset = 0;
-            DIST_CATEGORIES.forEach(cat => {
-                const pct = distState.pct[cat.name];
+
+            const cats = DIST_TEMPLATE.length > 0 ? DIST_TEMPLATE : [
+                { name: 'Emergency Fund', color: '#22c55e' },
+                { name: 'Investment',     color: '#3b82f6' },
+                { name: 'Goals',          color: '#f59e0b' },
+                { name: 'Buffer',         color: '#a78bfa' },
+            ];
+
+            cats.forEach((cat, i) => {
+                const pct = distState.pct[cat.name] || 0;
+                const color = cat.color || (DIST_COLORS[i] || '#6b7280');
                 if (pct > 0) {
-                    bar.innerHTML += `<div style="width:${pct}%;background:${cat.color}" class="h-full transition-all duration-200 rounded-full"></div>`;
+                    bar.innerHTML += `<div style="width:${pct}%;background:${color}" class="h-full transition-all duration-200 rounded-full"></div>`;
                 }
             });
         }
@@ -1881,13 +2016,30 @@
                 distEnabled: distState.enabled, distTotalPct: distState.totalPct
             });
 
-            // Distribution data
+            // Distribution data — auto-apply template if it exists
+            const cats = DIST_TEMPLATE.length > 0 ? DIST_TEMPLATE : [
+                { name: 'Emergency Fund' },
+                { name: 'Investment' },
+                { name: 'Goals' },
+                { name: 'Buffer' },
+            ];
+
             if (distState.enabled && distState.totalPct === 100) {
-                const dist = DIST_CATEGORIES.map(cat => ({
+                const dist = cats.map((cat, idx) => ({
                     category: cat.name,
-                    pct: distState.pct[cat.name],
-                    amount: Math.round(distState.amounts[cat.name]),
+                    pct: distState.pct[cat.name] || (DIST_TEMPLATE[idx] ? DIST_TEMPLATE[idx].pct : 0),
+                    icon: DIST_TEMPLATE[idx] ? DIST_TEMPLATE[idx].icon : '📦',
+                    amount: Math.round(distState.amounts[cat.name] || 0),
                 })).filter(d => d.pct > 0);
+                document.getElementById('splitFormDist').value = JSON.stringify(dist);
+            } else if (DIST_TEMPLATE.length > 0 && saveAmt > 0) {
+                // Auto-apply template percentages even if user didn't open the distribution step
+                const dist = DIST_TEMPLATE.map(cat => ({
+                    category: cat.name,
+                    pct: cat.pct,
+                    icon: cat.icon || '📦',
+                    amount: Math.round(saveAmt * cat.pct / 100),
+                }));
                 document.getElementById('splitFormDist').value = JSON.stringify(dist);
             } else {
                 document.getElementById('splitFormDist').value = '';
@@ -1922,6 +2074,114 @@
 
         function closeDistributionModal() {
             document.getElementById('distributionModal').classList.remove('active');
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // DISTRIBUTION TEMPLATE MODAL
+        // ═══════════════════════════════════════════════════════════════
+        let tmplState = {
+            rows: [],
+        };
+
+        function openTemplateModal() {
+            // Init rows from template
+            if (DIST_TEMPLATE.length > 0) {
+                tmplState.rows = DIST_TEMPLATE.map(c => ({ name: c.name, pct: c.pct, icon: c.icon || '📦' }));
+            } else {
+                // Default: 2 categories 50/50
+                tmplState.rows = [
+                    { name: 'Emergency Fund', pct: 50, icon: '🛡️' },
+                    { name: 'Investment', pct: 50, icon: '📈' },
+                ];
+            }
+            renderTemplateRows();
+            updateTemplatePreview();
+            document.getElementById('templateModal').classList.add('active');
+        }
+
+        function closeTemplateModal() {
+            document.getElementById('templateModal').classList.remove('active');
+        }
+
+        function addTemplateRow() {
+            tmplState.rows.push({ name: '', pct: 0, icon: '📦' });
+            renderTemplateRows();
+        }
+
+        function removeTemplateRow(idx) {
+            tmplState.rows.splice(idx, 1);
+            renderTemplateRows();
+            updateTemplatePreview();
+        }
+
+        const ICON_OPTIONS = ['🛡️', '📈', '🎯', '💼', '🏠', '✈️', '🎓', '💰', '🍎', '🚗', '🏥', '🎁'];
+
+        function renderTemplateRows() {
+            const container = document.getElementById('tmplCategories');
+            container.innerHTML = '';
+            tmplState.rows.forEach((row, idx) => {
+                const iconOptions = ICON_OPTIONS.map(ic =>
+                    `<option value="${ic}" ${row.icon === ic ? 'selected' : ''}>${ic}</option>`
+                ).join('');
+                container.innerHTML += `
+                    <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                        <select class="border border-gray-200 rounded-lg px-2 py-1 text-sm w-14 text-center bg-white"
+                            onchange="tmplState.rows[${idx}].icon = this.value; renderTemplateRows()">
+                            ${iconOptions}
+                        </select>
+                        <input type="text" value="${row.name}" placeholder="Category name"
+                            class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            oninput="tmplState.rows[${idx}].name = this.value">
+                        <input type="number" value="${row.pct}" min="0" max="100" placeholder="%"
+                            class="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-center bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            oninput="tmplState.rows[${idx}].pct = parseInt(this.value) || 0; updateTemplatePreview()">
+                        <span class="text-sm font-bold text-gray-400 w-6 text-center">%</span>
+                        <button type="button" onclick="removeTemplateRow(${idx})"
+                            class="text-red-400 hover:text-red-600 transition w-6 flex justify-center">
+                            <i class="ph ph-x text-sm"></i>
+                        </button>
+                    </div>`;
+            });
+        }
+
+        function updateTemplatePreview() {
+            const bar = document.getElementById('tmplPreviewBar');
+            const totalLabel = document.getElementById('tmplTotalPctLabel');
+            const errorLabel = document.getElementById('tmplTotalError');
+            const total = tmplState.rows.reduce((sum, r) => sum + (parseInt(r.pct) || 0), 0);
+            totalLabel.textContent = total + '%';
+            const isValid = total === 100;
+            totalLabel.style.color = isValid ? '' : '#ef4444';
+            errorLabel.style.display = isValid ? 'none' : 'block';
+
+            bar.innerHTML = '';
+            let offset = 0;
+            tmplState.rows.forEach((row, i) => {
+                const pct = parseInt(row.pct) || 0;
+                if (pct > 0) {
+                    const color = DIST_COLORS[i] || '#6b7280';
+                    bar.innerHTML += `<div style="width:${pct}%;background:${color}" class="h-full transition-all duration-200 rounded-full"></div>`;
+                }
+            });
+        }
+
+        function saveTemplate() {
+            const total = tmplState.rows.reduce((sum, r) => sum + (parseInt(r.pct) || 0), 0);
+            if (total !== 100) {
+                alert('Total must equal 100%!');
+                return;
+            }
+            const savePct = document.getElementById('tmplSaveSlider').value;
+            document.getElementById('distTemplateData').value = JSON.stringify(tmplState.rows);
+            document.getElementById('distTemplateSavePct').value = savePct;
+            closeTemplateModal();
+            document.getElementById('distributionTemplateForm').submit();
+        }
+
+        function deleteTemplate() {
+            if (!confirm('Delete this distribution template?')) return;
+            closeTemplateModal();
+            window.location.href = '/dashboard/distribution-template/delete';
         }
 
         // Update category bars on slider input
@@ -2109,6 +2369,7 @@
             document.getElementById('expenseFormNow').value = selectedNow || '';
             document.getElementById('expenseFormCat').value = selectedCat || '';
             document.getElementById('expenseFormAccount').value = document.getElementById('expenseAccountSelect').value || '';
+            document.getElementById('expenseFormDistCat').value = document.getElementById('distCatSelect').value || '';
 
             // DEBUG
             console.log('submitWithCategory', {
