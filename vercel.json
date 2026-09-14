@@ -22,7 +22,5 @@
             "src": "/(.*)",
             "dest": "/api/index.php"
         }
-    ],
-    "installCommand": "npm install",
-    "buildCommand": "npm run build"
+    ]
 }
