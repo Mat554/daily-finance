@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Transaction;
 use App\Models\AccountBalance;
 use App\Models\Expense;
+use App\Models\ExpensePayment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -404,12 +405,97 @@ class DashboardService
             $remaining = $allocated - $spent;
             $pct = $allocated > 0 ? round(($spent / $allocated) * 100) : 0;
 
+            // Due date calculations
+            $daysUntilDue = null;
+            $isPastDue = false;
+            $isUpcoming = false;
+            $recommendedDailySave = null;
+            $amountToPursue = $allocated - $spent;
+            $nextDueDateFormatted = null;
+            $nextDueMonth = null;
+
+            if ($expense->due_date) {
+                $today = Carbon::now();
+                $dueDay = (int) $expense->due_date;
+                $thisMonthDue = Carbon::now()->setDay(min($dueDay, Carbon::now()->daysInMonth));
+
+                if ($thisMonthDue->lt($today) || $thisMonthDue->equalTo($today)) {
+                    $thisMonthDue->addMonth();
+                }
+
+                $nextDueDateFormatted = $thisMonthDue->format('jS');
+                $nextDueMonth = $thisMonthDue->format('F Y');
+
+                $daysUntilDue = (int) $today->diffInDays($thisMonthDue, false);
+                $isPastDue = $daysUntilDue < 0;
+                $reminderThreshold = (int) ($expense->reminder_days ?? 3);
+                $isUpcoming = !$isPastDue && $daysUntilDue <= $reminderThreshold;
+
+                if ($daysUntilDue > 0 && $amountToPursue > 0) {
+                    $recommendedDailySave = round($amountToPursue / max(1, $daysUntilDue));
+                }
+            }
+
+            // Credit-specific calculations
+            $creditUtilization = null;
+            $minPaymentReminder = null;
+            if ($expense->is_credit) {
+                $creditLimit = $expense->credit_limit ?? 0;
+                $currentBalance = $expense->current_balance ?? 0;
+                $amountToPursue = $currentBalance;
+                if ($creditLimit > 0) {
+                    $creditUtilization = round(($currentBalance / $creditLimit) * 100, 1);
+                }
+                if ($expense->minimum_payment && $daysUntilDue !== null && $daysUntilDue <= ($expense->reminder_days ?? 3)) {
+                    $minPaymentReminder = $expense->minimum_payment;
+                }
+            }
+
+            // Payment calculations
+            $frequencyDivisor = match ($expense->payment_frequency ?? 'monthly') {
+                'biweekly' => 2,
+                'weekly' => 4,
+                'onetime' => 1,
+                default => 1,
+            };
+            $monthlyDueAmount = $allocated / max(1, $frequencyDivisor);
+
+            // Get payments for this billing period (current calendar month)
+            $periodPayments = $expense->payments()
+                ->where('username', $username)
+                ->whereBetween('payment_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                ->sum('amount');
+
+            $paymentRemaining = max(0, $monthlyDueAmount - $periodPayments);
+            $isPaymentComplete = $periodPayments >= $monthlyDueAmount;
+
+            $recentPayments = $expense->payments()
+                ->where('username', $username)
+                ->whereBetween('payment_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                ->orderBy('payment_date', 'desc')
+                ->limit(5)
+                ->get();
+
             $result[] = [
                 'expense' => $expense,
                 'spent' => $spent,
                 'remaining' => $remaining,
                 'pct' => $pct,
                 'is_over' => $spent > $allocated,
+                'days_until_due' => $daysUntilDue,
+                'is_past_due' => $isPastDue,
+                'is_upcoming' => $isUpcoming,
+                'recommended_daily_save' => $recommendedDailySave,
+                'amount_to_pursue' => $amountToPursue,
+                'credit_utilization' => $creditUtilization,
+                'min_payment_reminder' => $minPaymentReminder,
+                'next_due_date_formatted' => $nextDueDateFormatted,
+                'next_due_month' => $nextDueMonth,
+                'monthly_due_amount' => $monthlyDueAmount,
+                'total_paid' => $periodPayments,
+                'payment_remaining' => $paymentRemaining,
+                'is_payment_complete' => $isPaymentComplete,
+                'recent_payments' => $recentPayments,
             ];
         }
 

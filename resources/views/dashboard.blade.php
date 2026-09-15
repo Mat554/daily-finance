@@ -668,35 +668,165 @@
                     <i class="ph ph-gear mr-0.5"></i>Manage
                 </a>
             </div>
+
+            {{-- Upcoming Reminders Banner --}}
+            @php $upcomingReminders = collect($expensesWithSpending)->filter(fn($i) => $i['is_upcoming'] || $i['is_past_due'])->values(); @endphp
+            @if($upcomingReminders->isNotEmpty())
+            <div class="mb-4 rounded-2xl p-4 bg-amber-50 border border-amber-200">
+                <p class="text-xs font-bold text-amber-700 mb-2 flex items-center gap-1">
+                    <i class="ph ph-bell-ringing"></i>Upcoming Payments
+                </p>
+                <div class="space-y-2">
+                    @foreach($upcomingReminders as $item)
+                        @php $exp = $item['expense']; @endphp
+                        <div class="flex items-center justify-between bg-white rounded-xl p-3 border border-amber-100">
+                            <div>
+                                <p class="text-sm font-bold text-gray-800">
+                                    {{ $exp->name }}
+                                    @if($exp->is_credit)
+                                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 ml-1">Credit</span>
+                                    @endif
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    Due: <strong>{{ $item['next_due_date_formatted'] ?? $exp->due_date . 'th' }} {{ $item['next_due_month'] }}</strong>
+                                    @if($item['is_past_due'])
+                                        <span class="text-red-500 font-bold ml-1">· OVERDUE!</span>
+                                    @else
+                                        <span class="text-amber-600 ml-1">· in {{ $item['days_until_due'] }} day{{ $item['days_until_due'] == 1 ? '' : 's' }}</span>
+                                    @endif
+                                    @if($exp->is_credit && $item['min_payment_reminder'])
+                                        · Min: <strong>Rp {{ number_format($item['min_payment_reminder'], 0) }}</strong>
+                                    @endif
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                @if($exp->is_credit)
+                                    <p class="text-sm font-black text-gray-900">Rp {{ number_format($exp->current_balance ?? 0, 0) }}</p>
+                                    <p class="text-[10px] text-gray-400">{{ $item['credit_utilization'] ?? 0 }}% utilized</p>
+                                @else
+                                    <p class="text-sm font-black text-amber-600">
+                                        Rp {{ number_format(max(0, $item['payment_remaining'] ?? $item['amount_to_pursue']), 0) }}
+                                    </p>
+                                    @if($item['recommended_daily_save'] && $item['days_until_due'] > 0)
+                                        <p class="text-[10px] text-amber-500">Save Rp {{ number_format($item['recommended_daily_save'], 0) }}/day</p>
+                                    @endif
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 @foreach($expensesWithSpending as $item)
                     @php $exp = $item['expense']; @endphp
                     <div class="rounded-2xl p-4 {{ $item['is_over'] ? 'bg-red-50 border border-red-200' : 'bg-gray-50 border border-gray-100' }}">
                         <div class="flex items-start justify-between mb-2">
                             <div>
-                                <p class="text-sm font-bold text-gray-800">{{ $exp->name }}</p>
-                                <p class="text-[10px] text-gray-400">{{ ucfirst($exp->category) }}</p>
+                                <p class="text-sm font-bold text-gray-800 flex items-center gap-1.5 flex-wrap">
+                                    {{ $exp->name }}
+                                    @if($exp->is_credit)
+                                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600"><i class="ph ph-credit-card"></i></span>
+                                    @endif
+                                </p>
+                                <p class="text-[10px] text-gray-400">{{ ucfirst($exp->category) }}
+                                    @if(($exp->payment_frequency ?? 'monthly') !== 'monthly')
+                                        @if($exp->payment_frequency === 'onetime')
+                                            · <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-600">One-time</span>
+                                        @else
+                                            · {{ ucfirst($exp->payment_frequency ?? 'monthly') }}
+                                        @endif
+                                    @endif
+                                </p>
                             </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ $exp->category === 'fixed' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600' }}">
-                                {{ $exp->category }}
-                            </span>
+                            <div class="flex flex-col items-end gap-1">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ $exp->category === 'fixed' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600' }}">
+                                    {{ $exp->category }}
+                                </span>
+                                @if($exp->due_date)
+                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ $item['is_upcoming'] ? 'bg-amber-100 text-amber-600' : 'bg-indigo-50 text-indigo-500' }}">
+                                        <i class="ph ph-calendar"></i> {{ $item['next_due_date_formatted'] ?? $exp->due_date . 'th' }}
+                                    </span>
+                                @endif
+                            </div>
                         </div>
                         <div class="flex items-end justify-between mb-2">
                             <div>
-                                <p class="text-lg font-black {{ $item['is_over'] ? 'text-red-500' : 'text-gray-900' }}">
-                                    Rp {{ number_format($item['spent'], 0) }}
-                                </p>
-                                <p class="text-[10px] text-gray-400">of Rp {{ number_format($exp->allocated_amount, 0) }}</p>
+                                @if($exp->is_credit)
+                                    <p class="text-lg font-black text-gray-900">Rp {{ number_format($exp->current_balance ?? 0, 0) }}</p>
+                                    <p class="text-[10px] text-gray-400">
+                                        Limit: Rp {{ number_format($exp->credit_limit ?? 0, 0) }}
+                                        @if($item['credit_utilization'])
+                                            · <span class="{{ $item['credit_utilization'] > 70 ? 'text-red-500 font-bold' : 'text-emerald-500' }}">{{ $item['credit_utilization'] }}%</span> used
+                                        @endif
+                                    </p>
+                                @else
+                                    <p class="text-lg font-black {{ $item['is_over'] ? 'text-red-500' : 'text-gray-900' }}">
+                                        Rp {{ number_format($item['spent'], 0) }}
+                                    </p>
+                                    <p class="text-[10px] text-gray-400">of Rp {{ number_format($exp->allocated_amount, 0) }}</p>
+                                @endif
                             </div>
-                            <p class="text-xs font-bold {{ $item['remaining'] >= 0 ? 'text-emerald-500' : 'text-red-500' }}">
-                                {{ $item['remaining'] >= 0 ? 'Rp ' . number_format($item['remaining'], 0) . ' left' : 'Rp ' . number_format(abs($item['remaining']), 0) . ' over' }}
-                            </p>
+                            @if($exp->is_credit)
+                                <p class="text-xs font-bold text-amber-600">
+                                    Min: Rp {{ number_format($exp->minimum_payment ?? 0, 0) }}
+                                </p>
+                            @else
+                                <p class="text-xs font-bold {{ $item['remaining'] >= 0 ? 'text-emerald-500' : 'text-red-500' }}">
+                                    {{ $item['remaining'] >= 0 ? 'Rp ' . number_format($item['remaining'], 0) . ' left' : 'Rp ' . number_format(abs($item['remaining']), 0) . ' over' }}
+                                </p>
+                            @endif
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                            <div class="h-full rounded-full transition-all duration-500 {{ $item['is_over'] ? 'bg-red-400' : 'bg-emerald-400' }}"
-                                style="width: {{ min(100, $item['pct']) }}%"></div>
-                        </div>
-                        <p class="text-[10px] text-gray-400 mt-1">{{ $item['pct'] }}% used</p>
+                        @if($exp->due_date && !$exp->is_credit)
+                            {{-- Payment progress bar --}}
+                            <div class="mb-2">
+                                <div class="flex justify-between text-[10px] mb-0.5">
+                                    <span class="text-gray-400">
+                                        Paid: Rp {{ number_format($item['total_paid'] ?? 0, 0) }}
+                                        @if($item['is_payment_complete'] ?? false)
+                                            <span class="text-emerald-500 font-bold ml-1">✓</span>
+                                        @endif
+                                    </span>
+                                    <span class="{{ ($item['payment_remaining'] ?? 0) > 0 ? 'text-amber-500' : 'text-emerald-500' }} font-semibold">
+                                        {{ ($item['is_payment_complete'] ?? false) ? 'Paid' : 'Rp ' . number_format($item['payment_remaining'] ?? 0, 0) . ' left' }}
+                                    </span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden mb-1">
+                                    <div class="h-full rounded-full transition-all duration-500 {{ $item['is_payment_complete'] ?? false ? 'bg-emerald-400' : 'bg-amber-400' }}"
+                                        style="width: {{ $item['monthly_due_amount'] > 0 ? min(100, round(($item['total_paid'] ?? 0) / $item['monthly_due_amount'] * 100)) : 0 }}%"></div>
+                                </div>
+                                <p class="text-[10px] text-indigo-400 font-semibold">
+                                    Monthly due: <strong>Rp {{ number_format($item['monthly_due_amount'] ?? 0, 0) }}</strong>
+                                    @if($exp->payment_frequency === 'onetime')
+                                        <span class="text-xs font-bold text-teal-600 ml-1">(one-time)</span>
+                                    @endif
+                                    @if($item['next_due_month'])
+                                        · <span class="text-indigo-300">{{ $item['next_due_month'] }}</span>
+                                    @endif
+                                    @if($item['recommended_daily_save'] && $item['days_until_due'] > 0 && ($item['payment_remaining'] ?? 0) > 0)
+                                        · <span class="text-amber-500">Rp {{ number_format($item['recommended_daily_save'], 0) }}/day</span>
+                                    @endif
+                                </p>
+                            </div>
+                        @elseif($exp->is_credit && $exp->credit_limit)
+                            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden mb-2">
+                                <div class="h-full rounded-full transition-all duration-500 {{ ($item['credit_utilization'] ?? 0) > 70 ? 'bg-red-400' : 'bg-amber-400' }}"
+                                    style="width: {{ min(100, $item['credit_utilization'] ?? 0) }}%"></div>
+                            </div>
+                            <p class="text-[10px] text-gray-400 mb-2">{{ $item['credit_utilization'] ?? 0 }}% credit utilized</p>
+                        @else
+                            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden mb-2">
+                                <div class="h-full rounded-full transition-all duration-500 {{ $item['is_over'] ? 'bg-red-400' : 'bg-emerald-400' }}"
+                                    style="width: {{ min(100, $item['pct']) }}%"></div>
+                            </div>
+                        @endif
+                        <p class="text-[10px] text-gray-400">
+                            {{ $item['pct'] ?? 0 }}% spent
+                            @if($exp->due_date && !$exp->is_credit)
+                                · {{ $item['total_paid'] > 0 ? number_format(round($item['total_paid'] / max(1, $item['monthly_due_amount']) * 100)) : 0 }}% paid
+                            @endif
+                        </p>
                     </div>
                 @endforeach
             </div>

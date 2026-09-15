@@ -4,6 +4,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TrackerController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\ExpensePaymentController;
 use App\Http\Controllers\MonthlyReportController;
 use App\Http\Controllers\SavingsGoalController;
 use App\Http\Middleware\CheckUsername;
@@ -65,6 +66,10 @@ Route::middleware([CheckUsername::class])->group(function () {
     Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
     Route::post('/expenses/{expense}/toggle', [ExpenseController::class, 'toggle'])->name('expenses.toggle');
+
+    // Expense Payments
+    Route::post('/expenses/{expense}/payments', [ExpensePaymentController::class, 'store'])->name('expenses.payments.store');
+    Route::delete('/expenses/{expense}/payments/{payment}', [ExpensePaymentController::class, 'destroy'])->name('expenses.payments.destroy');
 
     // Monthly Report
     Route::get('/monthly-report/{year}/{month}', [MonthlyReportController::class, 'show'])->name('monthly-report.show');
