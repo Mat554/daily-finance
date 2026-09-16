@@ -14,10 +14,22 @@ Every logged-in user can access both. Users choose their default landing (tracke
 
 - **Backend**: Laravel 12, PHP 8.2+, PostgreSQL (prod) / SQLite (local)
 - **Frontend**: Blade templates, Tailwind CSS v4, Vite, plain JavaScript with Axios
-- **Auth**: Session-based with User model. "Mama" logs in with username only. All other users use username + password. Passwords are seeded by admin via `php artisan user:password <username> <password>`.
-- **Deployment**: Vercel (configured via `vercel.json`)
+- **Auth**: Session-based with User model. "Mama" logs in with username only. All other users log in with username or email + password. Self-service password reset available via `/forgot-password`.
+- **Deployment**: Vercel (configured via `vercel.json` with `npm run build` as build command)
 
-## Commands
+## ⚠️ Database Safety Rules
+
+**CRITICAL: Never run `migrate:fresh` or any command that wipes the database.** This destroys all user data permanently (transactions, expenses, reports, account balances).
+
+- `php artisan migrate` — safe, runs incremental migrations
+- `php artisan migrate:fresh` — **NEVER run** — drops all tables and wipes all data
+- `php artisan migrate:fresh --seed` — **NEVER run** — same as above plus reseeds
+- `php artisan db:seed` — safe, seeds into existing data
+- Any `DROP TABLE` or `TRUNCATE` — **NEVER run** without explicit user confirmation
+
+If the user asks to reset or clean the database, stop and ask for confirmation before proceeding. Explain that `migrate:fresh` permanently deletes all data.
+
+
 
 ```bash
 # Install dependencies
@@ -51,10 +63,11 @@ php artisan user:password <username> <password>
 ## Architecture
 
 ### Auth System
-- `AuthController` handles login (GET/POST) and logout (POST)
+- `AuthController` handles login (GET/POST), logout (POST), register (GET/POST), and forgot-password (GET/POST)
 - `CheckUsername` middleware checks `session('user_id')` and `session('username')`
 - **"Mama"**: username-only login, no password needed
-- **All other users**: username + password required. Passwords seeded by admin only — no forgot-password, no self-service reset
+- **All other users**: login with username or email + password
+- Users register with username + email + password
 - Session stores: `user_id` (User primary key), `username` (for data isolation), `landing` (preference)
 
 ### Controllers (`app/Http/Controllers/`)
@@ -78,16 +91,21 @@ php artisan user:password <username> <password>
 | `ExpensePayment` | Payments for expenses |
 | `MonthlyReport` | Generated reports per month — score, condition, summary |
 | `AccountBalance` | Per-account balances — Cash/Bank/E-Wallet/Savings |
-| `User` | Auth — username (unique), name, password (nullable), password_change_required |
+| `User` | Auth — username (unique), email (unique), name, password (nullable), password_change_required |
 
 ### Routes (`routes/web.php`)
 - `GET /login` — Login form
-- `POST /login` — Authenticate, set session, redirect per landing preference
+- `POST /login` — Authenticate (username or email + password), set session, redirect per landing preference
+- `GET /register` — Registration form
+- `POST /register` — Create account (username + email + password)
+- `GET /forgot-password` — Reset password form
+- `POST /forgot-password` — Reset password (find by username or email)
 - `POST /logout` — Clear auth session (GET redirects to /login)
 - All other routes protected by `CheckUsername` middleware
 
 ### Migrations
 - `create_users_table` — Users table (id, username, name, password, password_change_required)
+- `add_email_to_users_table` — Email column (nullable, unique)
 - `create_transactions_table` — Core fields
 - `add_username_to_transactions_table` — Multi-user support
 - `add_split_and_category_fields_to_transactions_table` — Income splitting and expense categorization
