@@ -14,7 +14,7 @@ Every logged-in user can access both. Users choose their default landing (tracke
 
 - **Backend**: Laravel 12, PHP 8.2+, PostgreSQL (prod) / SQLite (local)
 - **Frontend**: Blade templates, Tailwind CSS v4, Vite, plain JavaScript with Axios
-- **Auth**: Simple session-based — no passwords, just a username entered on `/login`
+- **Auth**: Session-based with User model. "Mama" logs in with username only. All other users use username + password. Passwords are seeded by admin via `php artisan user:password <username> <password>`.
 - **Deployment**: Vercel (configured via `vercel.json`)
 
 ## Commands
@@ -41,43 +41,69 @@ composer test
 # Run migrations
 php artisan migrate
 
-# Clear config cache (before running tests)
-php artisan config:clear
+# Reset DB (fresh migrate + seed)
+php artisan migrate:fresh --seed
+
+# Manage user passwords (seeded users only, no self-service)
+php artisan user:password <username> <password>
 ```
 
 ## Architecture
 
-### Routes (`routes/web.php`)
-- `GET /login` — Login form
-- `POST /login` — Set username + default landing preference in session, redirect per preference
-- `POST /preference` — Toggle default landing between `tracker` and `dashboard` (session-only)
-- `GET /logout` — Clear username from session (keeps landing preference)
-- All other routes protected by `CheckUsername` middleware
+### Auth System
+- `AuthController` handles login (GET/POST) and logout (POST)
+- `CheckUsername` middleware checks `session('user_id')` and `session('username')`
+- **"Mama"**: username-only login, no password needed
+- **All other users**: username + password required. Passwords seeded by admin only — no forgot-password, no self-service reset
+- Session stores: `user_id` (User primary key), `username` (for data isolation), `landing` (preference)
 
-### Controller (`app/Http/Controllers/FinanceController.php`)
-Single controller handling all business logic:
-- `dashboard()` — Analytics: filters, monthly trend, savings/income splits, need-vs-want categorization, badges, streak tracking
-- `index()` — Daily tracker view
-- `store()` / `update()` / `destroy()` — CRUD on transactions (redirects via `redirectAfterAction()`)
-- `history()` — Grouped transaction history
-- `edit()` — Edit form
-- `setPreference()` — Toggle `session('landing')` between `tracker` and `dashboard`
-- `redirectAfterAction()` — Private helper; redirects to dashboard or `/?date=...` based on `session('landing')`
+### Controllers (`app/Http/Controllers/`)
+| Controller | Purpose |
+|---|---|
+| `AuthController` | Login/logout |
+| `TrackerController` | Daily tracker + history |
+| `TransactionController` | CRUD + income splitting + savings distribution |
+| `DashboardController` | Analytics, distribution templates, account balances |
+| `SettingsController` | Landing preference toggle |
+| `ExpenseController` | Monthly budget categories + keyword matching |
+| `ExpensePaymentController` | Payment logging for expenses |
+| `MonthlyReportController` | 5-factor score, monthly summaries |
+| `SavingsGoalController` | Session-stored savings goal + progress |
 
 ### Models
-- **Transaction** — Core model. Fields: `description`, `amount`, `type` (`in`/`out`), `transaction_date`, `username`. Optional fields: `is_split`, `save_pct`, `spend_pct`, `saved_amount`, `spent_amount`, `split_preset`, `savings_distribution` (JSON), `savings_allocated`, `need_or_want`, `expense_category`
+| Model | Purpose |
+|---|---|
+| `Transaction` | Core — description, amount, type, date, username + split/distribution/category fields |
+| `Expense` | Monthly budget — name, category, allocated amount, keywords (JSON), due dates, credit tracking |
+| `ExpensePayment` | Payments for expenses |
+| `MonthlyReport` | Generated reports per month — score, condition, summary |
+| `AccountBalance` | Per-account balances — Cash/Bank/E-Wallet/Savings |
+| `User` | Auth — username (unique), name, password (nullable), password_change_required |
+
+### Routes (`routes/web.php`)
+- `GET /login` — Login form
+- `POST /login` — Authenticate, set session, redirect per landing preference
+- `POST /logout` — Clear auth session (GET redirects to /login)
+- All other routes protected by `CheckUsername` middleware
 
 ### Migrations
+- `create_users_table` — Users table (id, username, name, password, password_change_required)
 - `create_transactions_table` — Core fields
 - `add_username_to_transactions_table` — Multi-user support
 - `add_split_and_category_fields_to_transactions_table` — Income splitting and expense categorization
 - `add_savings_distribution_fields_to_transactions_table` — Savings allocation tracking
+- `add_account_type_to_transactions_table` — Account balance tracking
+- `create_expenses_table` + related — Monthly budget management
+- `create_monthly_reports_table` — Monthly financial reports
+- `create_expense_payments_table` — Payment logging
+- `ensure_mama_user_exists` — Seeds Mama into users table for existing installations
 
-## Key Conventions
+### Key Conventions
 
-- **Landing preference**: `session('landing')` defaults to `'tracker'` on every login. Users can switch via `POST /preference`. Mutations (store/update/destroy) redirect based on this preference via `FinanceController::redirectAfterAction()`.
-- **No special usernames**: Every logged-in user can reach `/dashboard`. The `matius` gate is removed — no hardcoded username checks anywhere.
+- **Data isolation**: `session('username')` is the key for all queries. Controllers use `Transaction::where('username', session('username'))`.
+- **Landing preference**: `session('landing')` defaults to `'tracker'`. Mutations redirect based on this.
+- **Session-stored preferences**: Landing preference, savings goal, and distribution template all live in PHP session.
+- **No special usernames**: Every logged-in user can reach `/dashboard`. No hardcoded username gates.
 - **Asset pipeline**: `vite.config.js` bundles `resources/css/app.css` and `resources/js/app.js`. Build output goes to `public/build/`.
 - **CSS**: Tailwind v4 with `@import 'tailwindcss'` (no config file — uses `@theme` block in `app.css`).
 - **Fonts**: Instrument Sans (configured in `@theme`).
-- **DB migrations**: Use `php artisan migrate` after pulling changes. New migrations added on 2026-09-07 for split/category features.

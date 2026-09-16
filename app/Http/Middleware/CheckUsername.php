@@ -10,8 +10,7 @@ class CheckUsername
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // If the browser doesn't have a username saved, kick them to login
-        if (!session()->has('username')) {
+        if (!session()->has('user_id') || !session()->has('username')) {
             return redirect('/login');
         }
 
