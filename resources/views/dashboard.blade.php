@@ -152,7 +152,7 @@
 
     <!-- Header -->
     <header class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white sticky top-0 z-50 shadow-lg shadow-blue-200/50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center float">
@@ -178,16 +178,19 @@
                             {{ session('landing') === 'dashboard' ? 'Default: Dashboard' : 'Default: Tracker' }}
                         </button>
                     </form>
-                    <a href="/expenses" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-blue-100 hover:text-white hover:bg-white/10 transition font-medium">
-                        <i class="ph ph-wallet text-base"></i>Expenses
+                    <a href="/expenses" class="flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-xl text-sm text-blue-100 hover:text-white hover:bg-white/10 transition font-medium" title="Expenses">
+                        <i class="ph ph-wallet text-base"></i><span class="hidden md:inline">Expenses</span>
                     </a>
-                    <a href="/savings-goal" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-blue-100 hover:text-white hover:bg-white/10 transition font-medium">
-                        <i class="ph ph-target text-base"></i>Savings Goal
+                    <a href="/categories" class="flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-xl text-sm text-blue-100 hover:text-white hover:bg-white/10 transition font-medium" title="Categories">
+                        <i class="ph ph-tag text-base"></i><span class="hidden md:inline">Categories</span>
                     </a>
-                    <a href="/history" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-blue-100 hover:text-white hover:bg-white/10 transition font-medium">
-                        <i class="ph ph-clock-counter-clockwise text-base"></i>History
+                    <a href="/savings-goal" class="flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-xl text-sm text-blue-100 hover:text-white hover:bg-white/10 transition font-medium" title="Savings Goal">
+                        <i class="ph ph-target text-base"></i><span class="hidden md:inline">Savings Goal</span>
                     </a>
-                    <a href="/logout" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-red-200 hover:text-red-100 hover:bg-red-500/20 transition font-medium ml-2">
+                    <a href="/history?from=dashboard" class="flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-xl text-sm text-blue-100 hover:text-white hover:bg-white/10 transition font-medium" title="History">
+                        <i class="ph ph-clock-counter-clockwise text-base"></i><span class="hidden md:inline">History</span>
+                    </a>
+                    <a href="/logout" class="flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-xl text-sm text-red-200 hover:text-red-100 hover:bg-red-500/20 transition font-medium" title="Logout">
                         <i class="ph ph-sign-out text-base"></i>
                     </a>
                 </nav>
@@ -195,7 +198,7 @@
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+    <main class="max-w-lg mx-auto px-4 md:max-w-7xl md:px-6 lg:px-8 py-6 space-y-5">
 
         <!-- Greeting -->
         <div>
@@ -218,30 +221,30 @@
 
         <!-- Quick Add -->
         <div class="card">
-            <form action="{{ route('store') }}" method="POST" class="flex gap-2 items-end flex-wrap sm:flex-nowrap">
+            <form action="{{ route('store') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:gap-2 lg:items-end">
                 @csrf
-                <div class="flex-1 min-w-0">
+                <div class="w-full lg:flex-1 min-w-0">
                     <label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                         <i class="ph ph-pencil-simple mr-1"></i>Description
                     </label>
                     <input type="text" name="description" placeholder="Groceries, Salary, Coffee..." required
                         class="w-full border border-gray-100 p-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition">
                 </div>
-                <div class="w-32 shrink-0">
+                <div class="w-full sm:w-32 lg:shrink-0 mt-2 sm:mt-0">
                     <label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                         <i class="ph ph-coins mr-1"></i>Amount
                     </label>
                     <input type="number" name="amount" placeholder="0" required
                         class="w-full border border-gray-100 p-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition">
                 </div>
-                <div class="w-36 shrink-0">
+                <div class="w-full sm:w-36 lg:shrink-0 mt-2 sm:mt-0">
                     <label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                         <i class="ph ph-calendar mr-1"></i>Date
                     </label>
                     <input type="date" name="transaction_date" value="{{ \Carbon\Carbon::now()->toDateString() }}" required
                         class="w-full border border-gray-100 p-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition">
                 </div>
-                <div class="w-32 shrink-0">
+                <div class="w-full sm:w-32 lg:shrink-0 mt-2 sm:mt-0">
                     <label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
                         <i class="ph ph-wallet mr-1"></i>Account
                     </label>
@@ -252,12 +255,25 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="w-full sm:w-32 lg:shrink-0 mt-2 sm:mt-0">
+                    <label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+                        <i class="ph ph-tag mr-1"></i>Category
+                    </label>
+                    <select name="category_id" class="w-full border border-gray-100 p-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition">
+                        <option value="">—</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}" {{ $lastUsedCategoryId == $cat->id ? 'selected' : '' }}>
+                                {{ $cat->icon }} {{ $cat->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
                 <button type="button" onclick="openSplitModal(this.form)"
-                    class="flex-1 bg-green-500 hover:bg-green-600 active:scale-95 text-white font-bold py-3 px-5 rounded-2xl transition-all text-sm shadow-lg shadow-green-200 hover:shadow-green-300 flex items-center justify-center gap-2">
+                    class="w-full mt-2 lg:flex-1 bg-green-500 hover:bg-green-600 active:scale-95 text-white font-bold py-3 px-5 rounded-2xl transition-all text-sm shadow-lg shadow-green-200 hover:shadow-green-300 flex items-center justify-center gap-2">
                     <i class="ph ph-arrow-circle-down text-lg"></i>Money In
                 </button>
                 <button type="button" onclick="openExpenseModal(this.form)"
-                    class="flex-1 bg-red-500 hover:bg-red-600 active:scale-95 text-white font-bold py-3 px-5 rounded-2xl transition-all text-sm shadow-lg shadow-red-200 hover:shadow-red-300 flex items-center justify-center gap-2">
+                    class="w-full mt-2 lg:flex-1 bg-red-500 hover:bg-red-600 active:scale-95 text-white font-bold py-3 px-5 rounded-2xl transition-all text-sm shadow-lg shadow-red-200 hover:shadow-red-300 flex items-center justify-center gap-2">
                     <i class="ph ph-arrow-circle-up text-lg"></i>Money Out
                 </button>
             </form>
@@ -1070,6 +1086,12 @@
                                                     </span>
                                                 </div>
                                                 @endif
+                                                @if($t->category)
+                                                <span class="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-0.5"
+                                                    style="background: {{ $t->category->color ?? '#6b7280' }}20; color: {{ $t->category->color ?? '#6b7280' }};">
+                                                    {{ $t->category->icon ?? '📦' }} {{ $t->category->name }}
+                                                </span>
+                                                @endif
                                             </div>
                                         </div>
                                         <div class="flex items-center gap-3 shrink-0">
@@ -1403,6 +1425,7 @@
         <input type="hidden" name="amount" id="splitFormAmt">
         <input type="hidden" name="type" value="in">
         <input type="hidden" name="transaction_date" id="splitFormDate">
+        <input type="hidden" name="category_id" id="splitFormCategory">
         <input type="hidden" name="save_pct" id="splitFormSavePct">
         <input type="hidden" name="spend_pct" id="splitFormSpendPct">
         <input type="hidden" name="saved_amount" id="splitFormSavedAmt">
@@ -1424,6 +1447,7 @@
         <input type="hidden" name="amount" id="expenseFormAmt">
         <input type="hidden" name="type" value="out">
         <input type="hidden" name="transaction_date" id="expenseFormDate">
+        <input type="hidden" name="category_id" id="expenseFormCategory">
         <input type="hidden" name="need_or_want" id="expenseFormNow">
         <input type="hidden" name="expense_category" id="expenseFormCat">
         <input type="hidden" name="account_type" id="expenseFormAccount">
@@ -1738,6 +1762,7 @@
             document.getElementById('splitFormSavedAmt').value = saveAmt;
             document.getElementById('splitFormSpentAmt').value = spendAmt;
             document.getElementById('splitFormAccount').value = pendingForm && pendingForm.account_type ? pendingForm.account_type.value : '';
+            document.getElementById('splitFormCategory').value = pendingForm && pendingForm.category_id ? pendingForm.category_id.value : '';
 
             const cats = DIST_TEMPLATE.length > 0 ? DIST_TEMPLATE : getDefaultCategories();
             if (distState.enabled && distState.totalPct === 100) {
@@ -1887,6 +1912,8 @@
         let selectedNow = null;
         let selectedCat = null;
 
+        const USER_CATEGORIES = @json($categories->map(fn($c) => ['id' => $c->id, 'name' => $c->name, 'icon' => $c->icon ?? '📦', 'color' => $c->color ?? '#6b7280']]);
+        let selectedCategoryId = null;
         const CAT_CHOICES = {
             need: ['🏠 Bills', '🍎 Food', '🚌 Transport', '💊 Health', '📦 Other'],
             want: ['🎮 Fun', '🛍 Shopping', '☕ Treats', '🎁 Gifts', '📦 Other'],
@@ -1903,6 +1930,7 @@
             document.getElementById('expenseAmountDisplay').textContent = 'Rp ' + expenseAmount.toLocaleString('id-ID');
             document.getElementById('expenseDescDisplay').textContent = 'for: ' + expenseDesc;
             document.getElementById('expenseAccountSelect').value = form.account_type ? form.account_type.value : '';
+            selectedCategoryId = form.category_id ? form.category_id.value : null;
 
             selectedNow = null;
             selectedCat = null;
@@ -1943,14 +1971,45 @@
 
             const chips = document.getElementById('catChips');
             chips.innerHTML = '';
+            // Show user's custom categories
+            USER_CATEGORIES.forEach(cat => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'cat-chip ' + value + (selectedCategoryId == cat.id ? ' selected' : '');
+                chip.innerHTML = cat.icon + ' ' + cat.name;
+                chip.style.borderColor = cat.color;
+                chip.style.color = cat.color;
+                chip.style.background = selectedCategoryId == cat.id ? cat.color + '20' : 'transparent';
+                chip.onclick = () => {
+                    selectedCategoryId = cat.id;
+                    selectedCat = cat.name;
+                    document.getElementById('expenseFormCat').value = cat.id;
+                    chips.querySelectorAll('.cat-chip').forEach(c => {
+                        c.classList.remove('selected');
+                        c.style.background = 'transparent';
+                    });
+                    chip.classList.add('selected');
+                    chip.style.background = cat.color + '20';
+                };
+                chips.appendChild(chip);
+            });
+            // Also show legacy CAT_CHOICES
             CAT_CHOICES[value].forEach(cat => {
                 const emoji = cat.split(' ')[0];
                 const label = cat.split(' ').slice(1).join(' ');
+                // Skip if already in USER_CATEGORIES
+                if (USER_CATEGORIES.some(c => c.name.toLowerCase() === label.toLowerCase())) return;
                 const chip = document.createElement('button');
                 chip.type = 'button';
                 chip.className = 'cat-chip ' + value;
                 chip.innerHTML = cat;
-                chip.onclick = () => selectCategory(label, value, chip);
+                chip.onclick = () => {
+                    selectedCat = label;
+                    selectedCategoryId = null;
+                    document.getElementById('expenseFormCat').value = label;
+                    chips.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
+                    chip.classList.add('selected');
+                };
                 chips.appendChild(chip);
             });
 
@@ -1960,6 +2019,7 @@
 
         function selectCategory(cat, now, chipEl) {
             selectedCat = cat;
+            selectedCategoryId = null;
             document.querySelectorAll('#catChips .cat-chip').forEach(c => c.classList.remove('selected'));
             chipEl.classList.add('selected');
             document.getElementById('expenseFormCat').value = cat;
@@ -1970,9 +2030,10 @@
                 document.getElementById('expenseFormDesc').value = expenseDesc;
                 document.getElementById('expenseFormAmt').value = expenseAmount;
                 document.getElementById('expenseFormDate').value = expenseDate;
+                document.getElementById('expenseFormCategory').value = expenseForm.category_id ? expenseForm.category_id.value : '';
             }
             document.getElementById('expenseFormNow').value = selectedNow || '';
-            document.getElementById('expenseFormCat').value = selectedCat || '';
+            document.getElementById('expenseFormCat').value = selectedCategoryId || selectedCat || '';
             document.getElementById('expenseFormAccount').value = document.getElementById('expenseAccountSelect').value || '';
             document.getElementById('expenseFormDistCat').value = document.getElementById('distCatSelect').value || '';
 

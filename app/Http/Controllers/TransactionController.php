@@ -24,6 +24,7 @@ class TransactionController extends Controller
             'transaction_date' => $request->transaction_date,
             'username' => session('username'),
             'account_type' => $request->account_type ?: null,
+            'category_id' => $request->category_id ?: null,
         ];
 
         if ($request->type === 'in' && $request->has('is_split') && $request->is_split == '1') {
@@ -85,6 +86,10 @@ class TransactionController extends Controller
             }
         }
 
+        if ($request->category_id) {
+            session(['last_used_category_id' => $request->category_id]);
+        }
+
         Transaction::create($data);
 
         return $this->redirectAfterAction($request);
@@ -92,7 +97,12 @@ class TransactionController extends Controller
 
     public function edit(Transaction $transaction)
     {
-        return view('edit', compact('transaction'));
+        $username = session('username');
+        $categories = \App\Models\Category::where('username', $username)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        return view('edit', compact('transaction', 'categories'));
     }
 
     public function update(Request $request, Transaction $transaction)
@@ -106,6 +116,7 @@ class TransactionController extends Controller
 
         $data = $request->only(['description', 'amount', 'type', 'transaction_date']);
         $data['account_type'] = $request->account_type ?: null;
+        $data['category_id'] = $request->category_id ?: null;
 
         if ($request->type === 'in' && $request->has('is_split') && $request->is_split == '1') {
             $savePct = (float) $request->save_pct;

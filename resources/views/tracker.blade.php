@@ -5,6 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Finance Tracker</title>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* Card entrance animation */
+        .tracker-card {
+            animation: slideUp 0.4s ease-out both;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Form card entrance */
+        .entries-card { animation: slideUp 0.4s ease-out 0.1s both; }
+        /* Button press feedback */
+        .btn-press {
+            transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.1s ease;
+        }
+        .btn-press:active {
+            transform: scale(0.97);
+        }
+        /* Input focus transitions */
+        .form-input {
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .form-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            outline: none;
+        }
+        /* Summary card subtle pulse on load */
+        .summary-card {
+            animation: fadeIn 0.5s ease-out 0.05s both;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -30,6 +66,10 @@
                             Default: {{ session('landing') === 'tracker' ? 'Tracker' : 'Dashboard' }}
                         </button>
                     </form>
+                    <a href="/history?from=tracker" class="text-xs font-medium flex items-center gap-1 transition text-gray-400 hover:text-blue-500" title="History">
+                        <i class="ph ph-clock-counter-clockwise"></i>
+                        <span class="hidden sm:inline">History</span>
+                    </a>
                     <a href="/logout" class="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition">
                         <i class="ph ph-sign-out"></i>
                         Logout
@@ -64,14 +104,22 @@
             </div>
         @endif
 
-        <form action="{{ route('store') }}" method="POST" class="mb-6 space-y-3 border-b-2 border-gray-100 pb-6">
+        <form action="{{ route('store') }}" method="POST" class="tracker-card mb-6 space-y-3 border-b-2 border-gray-100 pb-6">
             @csrf
 
-            <input type="date" name="transaction_date" value="{{ $currentDate }}" class="w-full border p-2 rounded text-gray-700" onchange="window.location.href='/?date=' + this.value" required>
+            <input type="date" name="transaction_date" value="{{ $currentDate }}" class="w-full border p-2 rounded text-gray-700 form-input" onchange="window.location.href='/?date=' + this.value" required>
 
-            <input type="text" name="description" placeholder="What was it?" class="w-full border p-2 rounded" required>
-            <input type="number" name="amount" placeholder="Amount" class="w-full border p-2 rounded" required>
-            <select name="account_type" class="w-full border p-2 rounded text-gray-600">
+            <input type="text" name="description" placeholder="What was it?" class="w-full border p-2 rounded form-input" required>
+            <input type="number" name="amount" placeholder="Amount" class="w-full border p-2 rounded form-input" required>
+            <select name="category_id" class="w-full border p-2 rounded text-gray-600 form-input">
+                <option value="">— Category (optional) —</option>
+                @foreach($categories as $cat)
+                    <option value="{{ $cat->id }}" {{ $lastUsedCategoryId == $cat->id ? 'selected' : '' }}>
+                        {{ $cat->icon }} {{ $cat->name }}
+                    </option>
+                @endforeach
+            </select>
+            <select name="account_type" class="w-full border p-2 rounded text-gray-600 form-input">
                 <option value="">— Account (optional) —</option>
                 @foreach(['Cash', 'Bank', 'E-Wallet', 'Savings'] as $acc)
                     <option value="{{ $acc }}">{{ $acc }}</option>
@@ -79,12 +127,12 @@
             </select>
 
             <div class="flex gap-2 pt-2">
-                <button type="submit" name="type" value="in" class="flex-1 bg-green-500 text-white font-semibold py-2 rounded hover:bg-green-600 transition">Money In</button>
-                <button type="submit" name="type" value="out" class="flex-1 bg-red-500 text-white font-semibold py-2 rounded hover:bg-red-600 transition">Money Out</button>
+                <button type="submit" name="type" value="in" class="btn-press flex-1 bg-green-500 text-white font-semibold py-2 rounded hover:bg-green-600 transition">Money In</button>
+                <button type="submit" name="type" value="out" class="btn-press flex-1 bg-red-500 text-white font-semibold py-2 rounded hover:bg-red-600 transition">Money Out</button>
             </div>
         </form>
 
-        <div class="mb-8">
+        <div class="entries-card mb-8">
             <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Today's Entries</h2>
             
             @if($transactions->isEmpty())
@@ -95,7 +143,15 @@
                         <li class="py-3 flex justify-between items-center">
                             <div>
                                 <span class="block text-gray-800 font-medium">{{ $t->description }}</span>
-                                <a href="{{ route('edit', $t->id) }}" class="text-xs text-blue-500 hover:text-blue-700 hover:underline">Edit</a>
+                                @if($t->category)
+                                    <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-full"
+                                        style="background: {{ $t->category->color ?? '#6b7280' }}20; color: {{ $t->category->color ?? '#6b7280' }};">
+                                        {{ $t->category->icon ?? '📦' }} {{ $t->category->name }}
+                                    </span>
+                                @elseif($t->expense_category)
+                                    <span class="text-xs text-gray-400">{{ $t->expense_category }}</span>
+                                @endif
+                                <a href="{{ route('edit', $t->id) }}" class="block text-xs text-blue-500 hover:text-blue-700 hover:underline">Edit</a>
                             </div>
                             <span class="font-bold {{ $t->type == 'in' ? 'text-green-500' : 'text-red-500' }}">
                                 {{ $t->type == 'in' ? '+' : '-' }} Rp {{ number_format($t->amount, 0) }}
@@ -107,11 +163,11 @@
         </div>
 
         <div class="space-y-3">
-            <a href="{{ route('history') }}" class="block w-full text-center bg-gray-800 text-white font-bold py-3 rounded hover:bg-gray-900 transition shadow-sm">
+            <a href="{{ route('history') }}?from=tracker" class="btn-press block w-full text-center bg-gray-800 text-white font-bold py-3 rounded hover:bg-gray-900 transition shadow-sm">
                 End the Day
             </a>
-            
-            <a href="{{ route('history') }}" class="block w-full text-center border-2 border-gray-200 text-gray-600 font-bold py-2 rounded hover:bg-gray-50 transition">
+
+            <a href="{{ route('history') }}?from=tracker" class="btn-press block w-full text-center border-2 border-gray-200 text-gray-600 font-bold py-2 rounded hover:bg-gray-50 transition">
                 View History
             </a>
         </div>

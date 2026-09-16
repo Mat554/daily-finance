@@ -33,9 +33,18 @@
                     <span class="text-sm font-bold text-gray-800">History</span>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="/" class="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 transition">
-                        <i class="ph ph-calendar"></i>
-                        Tracker
+                    @php
+                        $from = request()->query('from', 'tracker');
+                        $backLabel = $from === 'dashboard' ? 'Dashboard' : 'Tracker';
+                        $backHref = $from === 'dashboard' ? '/dashboard' : '/';
+                    @endphp
+                    <a href="{{ $backHref }}" class="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 transition">
+                        <i class="ph ph-arrow-left"></i>
+                        Back to {{ $backLabel }}
+                    </a>
+                    <a href="/categories" class="text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1 transition" title="Categories">
+                        <i class="ph ph-tag"></i>
+                        Categories
                     </a>
                     <a href="/logout" class="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition">
                         <i class="ph ph-sign-out"></i>
@@ -46,7 +55,7 @@
         </div>
     </header>
 
-    <div class="max-w-md mx-auto px-4 py-6">
+    <div class="max-w-md mx-auto px-4 md:max-w-3xl py-6">
 
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold">History</h1>
@@ -56,7 +65,7 @@
                     <i class="ph ph-printer text-lg"></i>
                     <span class="text-sm font-medium">Export</span>
                 </button>
-                <a href="/" class="text-blue-500 hover:underline text-sm">&larr; Back to Today</a>
+                <a href="{{ $backHref }}" class="text-blue-500 hover:underline text-sm">&larr; Back to {{ $backLabel }}</a>
             </div>
         </div>
 
@@ -76,7 +85,17 @@
                     <ul class="text-sm divide-y mb-4">
                         @foreach($transactions as $t)
                             <li class="py-2 flex justify-between items-center">
-                                <span class="text-gray-700">{{ $t->description }}</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-700">{{ $t->description }}</span>
+                                    @if($t->category)
+                                        <span class="inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-full"
+                                            style="background: {{ $t->category->color ?? '#6b7280' }}20; color: {{ $t->category->color ?? '#6b7280' }};">
+                                            {{ $t->category->icon ?? '📦' }} {{ $t->category->name }}
+                                        </span>
+                                    @elseif($t->expense_category)
+                                        <span class="text-xs text-gray-400">{{ $t->expense_category }}</span>
+                                    @endif
+                                </div>
                                 <span class="{{ $t->type == 'in' ? 'text-green-600' : 'text-red-600' }} font-medium">
                                     {{ $t->type == 'in' ? '+' : '-' }} {{ number_format($t->amount, 0) }}
                                 </span>

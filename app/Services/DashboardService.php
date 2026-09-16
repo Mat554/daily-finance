@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Transaction;
 use App\Models\AccountBalance;
+use App\Models\Category;
 use App\Models\Expense;
 use App\Models\ExpensePayment;
 use Carbon\Carbon;
@@ -19,6 +20,37 @@ class DashboardService
         $search = $request->get('q', '');
         $from = $request->get('from', '');
         $to = $request->get('to', '');
+
+        // Seed defaults if user has no categories
+        $existingCount = Category::where('username', $username)->count();
+        if ($existingCount === 0) {
+            $defaults = [
+                ['name' => 'Food', 'icon' => '🍔', 'color' => '#f97316'],
+                ['name' => 'Transportation', 'icon' => '🚗', 'color' => '#3b82f6'],
+                ['name' => 'Entertainment', 'icon' => '🎬', 'color' => '#a855f7'],
+                ['name' => 'Shopping', 'icon' => '🛍', 'color' => '#ec4899'],
+                ['name' => 'Bills', 'icon' => '📄', 'color' => '#eab308'],
+                ['name' => 'Health', 'icon' => '💊', 'color' => '#22c55e'],
+                ['name' => 'Education', 'icon' => '📚', 'color' => '#06b6d4'],
+                ['name' => 'Other', 'icon' => '📦', 'color' => '#6b7280'],
+            ];
+            foreach ($defaults as $cat) {
+                Category::create([
+                    'username' => $username,
+                    'name' => $cat['name'],
+                    'icon' => $cat['icon'],
+                    'color' => $cat['color'],
+                    'is_active' => true,
+                ]);
+            }
+        }
+
+        $categories = Category::where('username', $username)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $lastUsedCategoryId = (int) $request->session()->get('last_used_category_id', 0);
 
         $startDate = null;
         $endDate = null;
@@ -285,6 +317,8 @@ class DashboardService
             'expensesWithSpending' => $this->getExpenseBudgetData($username),
             'savingsGoal' => (float) session('savings_goal', 0),
             'savingsProgress' => $this->getSavingsProgress($username),
+            'categories' => $categories,
+            'lastUsedCategoryId' => $lastUsedCategoryId,
         ];
     }
 
