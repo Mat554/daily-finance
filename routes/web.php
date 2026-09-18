@@ -7,6 +7,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ExpensePaymentController;
 use App\Http\Controllers\MonthlyReportController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\SavingsGoalController;
 use App\Http\Middleware\CheckUsername;
 use Illuminate\Support\Facades\Route;
@@ -53,4 +54,9 @@ Route::middleware([CheckUsername::class])->group(function () {
     Route::get('/savings-goal', [SavingsGoalController::class, 'index'])->name('savings-goal.index');
     Route::post('/savings-goal', [SavingsGoalController::class, 'store'])->name('savings-goal.store');
     Route::delete('/savings-goal', [SavingsGoalController::class, 'destroy'])->name('savings-goal.destroy');
+
+    Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 });

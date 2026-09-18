@@ -50,7 +50,7 @@
             </h3>
             <form action="{{ route('expenses.store') }}" method="POST">
                 @csrf
-                <div class="grid grid-cols-1 sm:grid-cols-7 gap-3 items-end">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-end">
                     <div>
                         <label class="block text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wider">Name</label>
                         <input type="text" name="name" placeholder="Groceries, Rent..." required
@@ -87,7 +87,7 @@
                         <input type="text" name="keywords" placeholder="gofood, grab..."
                             class="w-full border border-gray-100 p-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 focus:bg-white transition">
                     </div>
-                    <div class="flex flex-col items-end gap-2">
+                    <div class="flex flex-col items-end gap-2 sm:col-span-2 lg:col-span-1">
                         <label class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
                             <input type="checkbox" name="rollover" class="rounded"> Rollover
                         </label>

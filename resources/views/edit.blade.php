@@ -97,6 +97,22 @@
                 </select>
             </div>
 
+            <!-- Category -->
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+                    <i class="ph ph-tag mr-1"></i>Category
+                </label>
+                <select name="category_id"
+                    class="w-full border border-gray-100 p-3 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50">
+                    <option value="">— None —</option>
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat->id }}" {{ $transaction->category_id == $cat->id ? 'selected' : '' }}>
+                            {{ $cat->icon }} {{ $cat->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
             <!-- Income Split Section -->
             @if($transaction->type === 'in')
             <div id="splitSection" class="border border-emerald-200 rounded-2xl p-4 bg-emerald-50/50">

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends Model
 {
@@ -15,6 +16,8 @@ class Transaction extends Model
         'type',
         'transaction_date',
         'username',
+        // Category
+        'category_id',
         // Income split
         'spend_pct',
         'save_pct',
@@ -31,4 +34,9 @@ class Transaction extends Model
         // Account type
         'account_type',
     ];
+
+	public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
 }
